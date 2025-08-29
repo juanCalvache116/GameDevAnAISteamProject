@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zelda-Inspired 2.5D Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a2f0a;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #FFD700;
+            text-shadow: 2px 2px 0px #000, 0px 0px 10px rgba(255, 215, 0, 0.3);
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #8B4513;
+            min-width: 120px;
+        }
+        
+        #ui div {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #FFD700;
+            text-shadow: 2px 2px 0px #000, 0px 0px 10px rgba(255, 215, 0, 0.3);
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #8B4513;
+        }
+        
+        .minimap {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        
+        .minimap-title {
+            color: #FFD700;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 5px;
+            text-shadow: 1px 1px 0px #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div>♥♥♥ Health</div>
+            <div>💎 Rupees: 0</div>
+            <div>📍 Position: (0, 0)</div>
+        </div>
+        <div class="minimap">
+            <div class="minimap-title">Map</div>
+        </div>
+        <div class="controls">
+            🎮 WASD or Arrow Keys to move<br>
+            🔍 Explore the vast world!
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game variables
+        let scene, camera, renderer, character, world;
+        let keys = {};
+        let characterPosition = { x: 0, z: 0 };
+        
+        // Initialize the game
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            
+            // Create orthographic camera for top-down 2.5D view
+            const aspect = window.innerWidth / window.innerHeight;
+            const frustumSize = 20;
+            camera = new THREE.OrthographicCamera(
+                frustumSize * aspect / -2, frustumSize * aspect / 2,
+                frustumSize / 2, frustumSize / -2,
+                0.1, 1000
+            );
+            
+            // Position camera for top-down view with slight angle
+            camera.position.set(0, 15, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Create renderer
+            const canvas = document.getElementById('gameCanvas');
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas,
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            setupLighting();
+            createWorld();
+            createCharacter();
+            setupControls();
+            
+            animate();
+        }
+        
+        function setupLighting() {
+            // Ambient light for overall illumination
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            // Directional light for shadows (like sunlight)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -20;
+            directionalLight.shadow.camera.right = 20;
+            directionalLight.shadow.camera.top = 20;
+            directionalLight.shadow.camera.bottom = -20;
+            scene.add(directionalLight);
+        }
+        
+        function createWorld() {
+            world = new THREE.Group();
+            
+            // Create main ground plane with grass texture (much larger)
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x4a7c1e 
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            world.add(ground);
+            
+            // Create dark green boundary areas around the edges
+            const boundaryMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x1a2f0a 
+            });
+            
+            // Top boundary
+            const topBoundary = new THREE.PlaneGeometry(220, 20);
+            const topBoundaryMesh = new THREE.Mesh(topBoundary, boundaryMaterial);
+            topBoundaryMesh.rotation.x = -Math.PI / 2;
+            topBoundaryMesh.position.set(0, 0.01, -110);
+            world.add(topBoundaryMesh);
+            
+            // Bottom boundary
+            const bottomBoundaryMesh = new THREE.Mesh(topBoundary, boundaryMaterial);
+            bottomBoundaryMesh.rotation.x = -Math.PI / 2;
+            bottomBoundaryMesh.position.set(0, 0.01, 110);
+            world.add(bottomBoundaryMesh);
+            
+            // Left boundary
+            const sideBoundary = new THREE.PlaneGeometry(20, 200);
+            const leftBoundaryMesh = new THREE.Mesh(sideBoundary, boundaryMaterial);
+            leftBoundaryMesh.rotation.x = -Math.PI / 2;
+            leftBoundaryMesh.position.set(-110, 0.01, 0);
+            world.add(leftBoundaryMesh);
+            
+            // Right boundary
+            const rightBoundaryMesh = new THREE.Mesh(sideBoundary, boundaryMaterial);
+            rightBoundaryMesh.rotation.x = -Math.PI / 2;
+            rightBoundaryMesh.position.set(110, 0.01, 0);
+            world.add(rightBoundaryMesh);
+            
+            // Create some trees and obstacles
+            createTrees();
+            createRocks();
+            createWater();
+            
+            scene.add(world);
+        }
+        
+        function createTrees() {
+            const treePositions = [
+                // Original trees near center
+                { x: -8, z: -8 }, { x: 8, z: -8 }, { x: -8, z: 8 }, { x: 8, z: 8 },
+                { x: -12, z: 0 }, { x: 12, z: 0 }, { x: 0, z: -12 }, { x: 0, z: 12 },
+                // Additional trees spread across the larger terrain
+                { x: -25, z: -25 }, { x: 25, z: -25 }, { x: -25, z: 25 }, { x: 25, z: 25 },
+                { x: -40, z: -20 }, { x: 40, z: -20 }, { x: -40, z: 20 }, { x: 40, z: 20 },
+                { x: -20, z: -40 }, { x: 20, z: -40 }, { x: -20, z: 40 }, { x: 20, z: 40 },
+                { x: -30, z: 0 }, { x: 30, z: 0 }, { x: 0, z: -30 }, { x: 0, z: 30 },
+                { x: -15, z: -35 }, { x: 15, z: -35 }, { x: -35, z: 15 }, { x: 35, z: 15 }
+            ];
+            
+            treePositions.forEach(pos => {
+                // Tree trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.set(pos.x, 1, pos.z);
+                trunk.castShadow = true;
+                world.add(trunk);
+                
+                // Tree leaves
+                const leavesGeometry = new THREE.SphereGeometry(1.5);
+                const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                leaves.position.set(pos.x, 3, pos.z);
+                leaves.castShadow = true;
+                world.add(leaves);
+            });
+        }
+        
+        function createRocks() {
+            const rockPositions = [
+                { x: -5, z: -5 }, { x: 5, z: 5 }, { x: -6, z: 6 }, { x: 7, z: -4 }
+            ];
+            
+            rockPositions.forEach(pos => {
+                const rockGeometry = new THREE.DodecahedronGeometry(0.8);
+                const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
+                const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                rock.position.set(pos.x, 0.4, pos.z);
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                world.add(rock);
+            });
+        }
+        
+        function createWater() {
+            // Small pond
+            const waterGeometry = new THREE.CircleGeometry(3, 16);
+            const waterMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x1E90FF,
+                transparent: true,
+                opacity: 0.7
+            });
+            const water = new THREE.Mesh(waterGeometry, waterMaterial);
+            water.rotation.x = -Math.PI / 2;
+            water.position.set(-15, 0.01, -15);
+            world.add(water);
+        }
+        
+        function createCharacter() {
+            // Create a simple character representation
+            // In a real implementation, you'd load the sprite here
+            const characterGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.4);
+            const characterMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFF69B4  // Magenta, matching the sprite
+            });
+            character = new THREE.Mesh(characterGeometry, characterMaterial);
+            character.position.set(0, 0.8, 0);
+            character.castShadow = true;
+            scene.add(character);
+            
+            // Add a simple face
+            const faceGeometry = new THREE.SphereGeometry(0.15);
+            const faceMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDDAA });
+            const face = new THREE.Mesh(faceGeometry, faceMaterial);
+            face.position.set(0, 0.3, 0.25);
+            character.add(face);
+            
+            // Add eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.03);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.05, 0.05, 0.1);
+            face.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.05, 0.05, 0.1);
+            face.add(rightEye);
+        }
+        
+        function setupControls() {
+            document.addEventListener('keydown', (event) => {
+                keys[event.code] = true;
+            });
+            
+            document.addEventListener('keyup', (event) => {
+                keys[event.code] = false;
+            });
+        }
+        
+        function updateCharacterMovement() {
+            const moveSpeed = 0.1;
+            let moved = false;
+            
+            // Handle movement
+            if (keys['KeyW'] || keys['ArrowUp']) {
+                characterPosition.z -= moveSpeed;
+                moved = true;
+            }
+            if (keys['KeyS'] || keys['ArrowDown']) {
+                characterPosition.z += moveSpeed;
+                moved = true;
+            }
+            if (keys['KeyA'] || keys['ArrowLeft']) {
+                characterPosition.x -= moveSpeed;
+                moved = true;
+            }
+            if (keys['KeyD'] || keys['ArrowRight']) {
+                characterPosition.x += moveSpeed;
+                moved = true;
+            }
+            
+            // Boundary checking (expanded for larger terrain)
+            characterPosition.x = Math.max(-95, Math.min(95, characterPosition.x));
+            characterPosition.z = Math.max(-95, Math.min(95, characterPosition.z));
+            
+            // Update character position
+            character.position.x = characterPosition.x;
+            character.position.z = characterPosition.z;
+            
+            // Simple walking animation
+            if (moved) {
+                character.rotation.y = Math.sin(Date.now() * 0.01) * 0.1;
+                character.position.y = 0.8 + Math.sin(Date.now() * 0.02) * 0.05;
+            } else {
+                character.rotation.y = 0;
+                character.position.y = 0.8;
+            }
+            
+            // Camera follows character
+            camera.position.x = characterPosition.x;
+            camera.position.z = characterPosition.z + 8;
+            camera.lookAt(characterPosition.x, 0, characterPosition.z);
+            
+            // Update UI with current position
+            const positionDisplay = document.querySelector('#ui div:nth-child(3)');
+            if (positionDisplay) {
+                positionDisplay.textContent = `📍 Position: (${Math.round(characterPosition.x)}, ${Math.round(characterPosition.z)})`;
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updateCharacterMovement();
+            
+            // Animate water
+            const water = world.children.find(child => 
+                child.material && child.material.color && 
+                child.material.color.getHex() === 0x1E90FF
+            );
+            if (water) {
+                water.material.opacity = 0.7 + Math.sin(Date.now() * 0.003) * 0.1;
+            }
+            
+            // Animate trees (slight sway)
+            world.children.forEach(child => {
+                if (child.material && child.material.color && 
+                    child.material.color.getHex() === 0x228B22) {
+                    child.rotation.z = Math.sin(Date.now() * 0.002 + child.position.x) * 0.05;
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            const frustumSize = 20;
+            camera.left = frustumSize * aspect / -2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = frustumSize / -2;
+            camera.updateProjectionMatrix();
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
