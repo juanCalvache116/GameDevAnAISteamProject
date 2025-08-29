@@ -95,7 +95,8 @@
         </div>
         <div class="controls">
             🎮 WASD or Arrow Keys to move<br>
-            🔍 Explore the vast world!
+            📏 Grid-based movement - one tile at a time!<br>
+            🚫 Can't move through trees, rocks, or water
         </div>
     </div>
 
@@ -104,10 +105,67 @@
         // Game variables
         let scene, camera, renderer, character, world;
         let keys = {};
+        let keyPressed = {};
+        
+        // Grid system
+        const TILE_SIZE = 2;  // Each tile is 2x2 units
+        const GRID_SIZE = 51; // 51x51 grid (odd number for center at (0,0))
+        const HALF_GRID = Math.floor(GRID_SIZE / 2);
+        
+        // Character position in grid coordinates
+        let characterGridPos = { x: 0, z: 0 };
         let characterPosition = { x: 0, z: 0 };
+        
+        // Grid occupancy map (true = occupied, false = empty)
+        let gridMap = {};
+        
+        // Initialize grid map
+        function initGridMap() {
+            gridMap = {};
+            for (let x = -HALF_GRID; x <= HALF_GRID; x++) {
+                for (let z = -HALF_GRID; z <= HALF_GRID; z++) {
+                    gridMap[`${x},${z}`] = false;
+                }
+            }
+        }
+        
+        // Convert grid coordinates to world coordinates
+        function gridToWorld(gridX, gridZ) {
+            return {
+                x: gridX * TILE_SIZE,
+                z: gridZ * TILE_SIZE
+            };
+        }
+        
+        // Convert world coordinates to grid coordinates
+        function worldToGrid(worldX, worldZ) {
+            return {
+                x: Math.round(worldX / TILE_SIZE),
+                z: Math.round(worldZ / TILE_SIZE)
+            };
+        }
+        
+        // Check if a grid position is valid and not occupied
+        function isValidGridPosition(gridX, gridZ) {
+            const key = `${gridX},${gridZ}`;
+            return gridX >= -HALF_GRID && gridX <= HALF_GRID && 
+                   gridZ >= -HALF_GRID && gridZ <= HALF_GRID &&
+                   !gridMap[key];
+        }
+        
+        // Set grid position as occupied
+        function setGridOccupied(gridX, gridZ, occupied = true) {
+            const key = `${gridX},${gridZ}`;
+            if (gridMap.hasOwnProperty(key)) {
+                gridMap[key] = occupied;
+            }
+        }
         
         // Initialize the game
         function init() {
+            // Initialize grid system
+            initGridMap();
+            
             // Create scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB); // Sky blue
@@ -166,48 +224,10 @@
         function createWorld() {
             world = new THREE.Group();
             
-            // Create main ground plane with grass texture (much larger)
-            const groundGeometry = new THREE.PlaneGeometry(200, 200);
-            const groundMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x4a7c1e 
-            });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            world.add(ground);
+            // Create grid-based terrain
+            createGridTerrain();
             
-            // Create dark green boundary areas around the edges
-            const boundaryMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x1a2f0a 
-            });
-            
-            // Top boundary
-            const topBoundary = new THREE.PlaneGeometry(220, 20);
-            const topBoundaryMesh = new THREE.Mesh(topBoundary, boundaryMaterial);
-            topBoundaryMesh.rotation.x = -Math.PI / 2;
-            topBoundaryMesh.position.set(0, 0.01, -110);
-            world.add(topBoundaryMesh);
-            
-            // Bottom boundary
-            const bottomBoundaryMesh = new THREE.Mesh(topBoundary, boundaryMaterial);
-            bottomBoundaryMesh.rotation.x = -Math.PI / 2;
-            bottomBoundaryMesh.position.set(0, 0.01, 110);
-            world.add(bottomBoundaryMesh);
-            
-            // Left boundary
-            const sideBoundary = new THREE.PlaneGeometry(20, 200);
-            const leftBoundaryMesh = new THREE.Mesh(sideBoundary, boundaryMaterial);
-            leftBoundaryMesh.rotation.x = -Math.PI / 2;
-            leftBoundaryMesh.position.set(-110, 0.01, 0);
-            world.add(leftBoundaryMesh);
-            
-            // Right boundary
-            const rightBoundaryMesh = new THREE.Mesh(sideBoundary, boundaryMaterial);
-            rightBoundaryMesh.rotation.x = -Math.PI / 2;
-            rightBoundaryMesh.position.set(110, 0.01, 0);
-            world.add(rightBoundaryMesh);
-            
-            // Create some trees and obstacles
+            // Create objects on specific grid tiles
             createTrees();
             createRocks();
             createWater();
@@ -215,66 +235,139 @@
             scene.add(world);
         }
         
+        function createGridTerrain() {
+            // Create individual tiles for the grid
+            const tileGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.98, TILE_SIZE * 0.98); // Slightly smaller to show grid lines
+            const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x4a7c1e });
+            const boundaryMaterial = new THREE.MeshLambertMaterial({ color: 0x1a2f0a });
+            
+            for (let gridX = -HALF_GRID; gridX <= HALF_GRID; gridX++) {
+                for (let gridZ = -HALF_GRID; gridZ <= HALF_GRID; gridZ++) {
+                    const worldPos = gridToWorld(gridX, gridZ);
+                    
+                    // Determine if this is a boundary tile
+                    const isBoundary = (Math.abs(gridX) > HALF_GRID - 5 || Math.abs(gridZ) > HALF_GRID - 5);
+                    
+                    const tile = new THREE.Mesh(tileGeometry, isBoundary ? boundaryMaterial : grassMaterial);
+                    tile.rotation.x = -Math.PI / 2;
+                    tile.position.set(worldPos.x, 0, worldPos.z);
+                    tile.receiveShadow = true;
+                    
+                    // Add subtle grid lines by making tiles slightly darker at edges
+                    if (!isBoundary) {
+                        // Add a thin border effect
+                        const borderGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+                        const borderMaterial = new THREE.MeshLambertMaterial({ 
+                            color: 0x3d6919, 
+                            transparent: true, 
+                            opacity: 0.3 
+                        });
+                        const border = new THREE.Mesh(borderGeometry, borderMaterial);
+                        border.rotation.x = -Math.PI / 2;
+                        border.position.set(worldPos.x, 0.001, worldPos.z);
+                        world.add(border);
+                    }
+                    
+                    world.add(tile);
+                }
+            }
+        }
+        
         function createTrees() {
-            const treePositions = [
-                // Original trees near center
-                { x: -8, z: -8 }, { x: 8, z: -8 }, { x: -8, z: 8 }, { x: 8, z: 8 },
-                { x: -12, z: 0 }, { x: 12, z: 0 }, { x: 0, z: -12 }, { x: 0, z: 12 },
-                // Additional trees spread across the larger terrain
-                { x: -25, z: -25 }, { x: 25, z: -25 }, { x: -25, z: 25 }, { x: 25, z: 25 },
-                { x: -40, z: -20 }, { x: 40, z: -20 }, { x: -40, z: 20 }, { x: 40, z: 20 },
-                { x: -20, z: -40 }, { x: 20, z: -40 }, { x: -20, z: 40 }, { x: 20, z: 40 },
-                { x: -30, z: 0 }, { x: 30, z: 0 }, { x: 0, z: -30 }, { x: 0, z: 30 },
-                { x: -15, z: -35 }, { x: 15, z: -35 }, { x: -35, z: 15 }, { x: 35, z: 15 }
+            // Define tree positions in grid coordinates
+            const treeGridPositions = [
+                // Center area trees
+                { x: -4, z: -4 }, { x: 4, z: -4 }, { x: -4, z: 4 }, { x: 4, z: 4 },
+                { x: -6, z: 0 }, { x: 6, z: 0 }, { x: 0, z: -6 }, { x: 0, z: 6 },
+                // Scattered trees across the map
+                { x: -10, z: -8 }, { x: 8, z: -12 }, { x: -12, z: 10 }, { x: 12, z: 8 },
+                { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -15, z: 15 }, { x: 15, z: 15 },
+                { x: -8, z: -20 }, { x: 8, z: 20 }, { x: -20, z: 8 }, { x: 20, z: -8 },
+                { x: -18, z: 0 }, { x: 18, z: 0 }, { x: 0, z: -18 }, { x: 0, z: 18 },
+                // More scattered placement
+                { x: -22, z: -10 }, { x: 22, z: 10 }, { x: -10, z: 22 }, { x: 10, z: -22 }
             ];
             
-            treePositions.forEach(pos => {
-                // Tree trunk
-                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
-                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-                trunk.position.set(pos.x, 1, pos.z);
-                trunk.castShadow = true;
-                world.add(trunk);
-                
-                // Tree leaves
-                const leavesGeometry = new THREE.SphereGeometry(1.5);
-                const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
-                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-                leaves.position.set(pos.x, 3, pos.z);
-                leaves.castShadow = true;
-                world.add(leaves);
+            treeGridPositions.forEach(gridPos => {
+                if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                    
+                    // Tree trunk
+                    const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
+                    const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                    trunk.position.set(worldPos.x, 1, worldPos.z);
+                    trunk.castShadow = true;
+                    world.add(trunk);
+                    
+                    // Tree leaves
+                    const leavesGeometry = new THREE.SphereGeometry(1.0);
+                    const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                    leaves.position.set(worldPos.x, 2.5, worldPos.z);
+                    leaves.castShadow = true;
+                    world.add(leaves);
+                    
+                    // Mark this grid position as occupied
+                    setGridOccupied(gridPos.x, gridPos.z, true);
+                }
             });
         }
         
         function createRocks() {
-            const rockPositions = [
-                { x: -5, z: -5 }, { x: 5, z: 5 }, { x: -6, z: 6 }, { x: 7, z: -4 }
+            // Define rock positions in grid coordinates
+            const rockGridPositions = [
+                { x: -3, z: -3 }, { x: 3, z: 3 }, { x: -3, z: 3 }, { x: 5, z: -2 },
+                { x: -7, z: 2 }, { x: 9, z: -5 }, { x: -11, z: -7 }, { x: 13, z: 6 },
+                { x: -16, z: 12 }, { x: 14, z: -16 }
             ];
             
-            rockPositions.forEach(pos => {
-                const rockGeometry = new THREE.DodecahedronGeometry(0.8);
-                const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
-                const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-                rock.position.set(pos.x, 0.4, pos.z);
-                rock.castShadow = true;
-                rock.receiveShadow = true;
-                world.add(rock);
+            rockGridPositions.forEach(gridPos => {
+                if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                    
+                    const rockGeometry = new THREE.DodecahedronGeometry(0.6);
+                    const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
+                    const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                    rock.position.set(worldPos.x, 0.3, worldPos.z);
+                    rock.castShadow = true;
+                    rock.receiveShadow = true;
+                    world.add(rock);
+                    
+                    // Mark this grid position as occupied
+                    setGridOccupied(gridPos.x, gridPos.z, true);
+                }
             });
         }
         
         function createWater() {
-            // Small pond
-            const waterGeometry = new THREE.CircleGeometry(3, 16);
+            // Create a small pond that occupies multiple tiles
+            const pondTiles = [
+                { x: -8, z: -8 }, { x: -7, z: -8 }, { x: -6, z: -8 },
+                { x: -8, z: -7 }, { x: -7, z: -7 }, { x: -6, z: -7 },
+                { x: -8, z: -6 }, { x: -7, z: -6 }, { x: -6, z: -6 }
+            ];
+            
             const waterMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0x1E90FF,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8
             });
-            const water = new THREE.Mesh(waterGeometry, waterMaterial);
-            water.rotation.x = -Math.PI / 2;
-            water.position.set(-15, 0.01, -15);
-            world.add(water);
+            
+            pondTiles.forEach(gridPos => {
+                if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                    
+                    const waterGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
+                    const water = new THREE.Mesh(waterGeometry, waterMaterial);
+                    water.rotation.x = -Math.PI / 2;
+                    water.position.set(worldPos.x, 0.02, worldPos.z);
+                    world.add(water);
+                    
+                    // Mark this grid position as occupied (player can't walk on water)
+                    setGridOccupied(gridPos.x, gridPos.z, true);
+                }
+            });
         }
         
         function createCharacter() {
@@ -285,7 +378,14 @@
                 color: 0xFF69B4  // Magenta, matching the sprite
             });
             character = new THREE.Mesh(characterGeometry, characterMaterial);
-            character.position.set(0, 0.8, 0);
+            
+            // Position character at grid center (0, 0)
+            characterGridPos = { x: 0, z: 0 };
+            const worldPos = gridToWorld(characterGridPos.x, characterGridPos.z);
+            character.position.set(worldPos.x, 0.8, worldPos.z);
+            characterPosition.x = worldPos.x;
+            characterPosition.z = worldPos.z;
+            
             character.castShadow = true;
             scene.add(character);
             
@@ -311,69 +411,94 @@
         
         function setupControls() {
             document.addEventListener('keydown', (event) => {
-                keys[event.code] = true;
+                if (!keys[event.code] && !keyPressed[event.code]) {
+                    keys[event.code] = true;
+                    keyPressed[event.code] = true;
+                    handleGridMovement(event.code);
+                }
             });
             
             document.addEventListener('keyup', (event) => {
                 keys[event.code] = false;
+                keyPressed[event.code] = false;
             });
         }
         
-        function updateCharacterMovement() {
-            const moveSpeed = 0.1;
-            let moved = false;
+        function handleGridMovement(keyCode) {
+            let newGridX = characterGridPos.x;
+            let newGridZ = characterGridPos.z;
             
-            // Handle movement
-            if (keys['KeyW'] || keys['ArrowUp']) {
-                characterPosition.z -= moveSpeed;
-                moved = true;
-            }
-            if (keys['KeyS'] || keys['ArrowDown']) {
-                characterPosition.z += moveSpeed;
-                moved = true;
-            }
-            if (keys['KeyA'] || keys['ArrowLeft']) {
-                characterPosition.x -= moveSpeed;
-                moved = true;
-            }
-            if (keys['KeyD'] || keys['ArrowRight']) {
-                characterPosition.x += moveSpeed;
-                moved = true;
-            }
-            
-            // Boundary checking (expanded for larger terrain)
-            characterPosition.x = Math.max(-95, Math.min(95, characterPosition.x));
-            characterPosition.z = Math.max(-95, Math.min(95, characterPosition.z));
-            
-            // Update character position
-            character.position.x = characterPosition.x;
-            character.position.z = characterPosition.z;
-            
-            // Simple walking animation
-            if (moved) {
-                character.rotation.y = Math.sin(Date.now() * 0.01) * 0.1;
-                character.position.y = 0.8 + Math.sin(Date.now() * 0.02) * 0.05;
-            } else {
-                character.rotation.y = 0;
-                character.position.y = 0.8;
+            // Determine new grid position based on key pressed
+            switch(keyCode) {
+                case 'KeyW':
+                case 'ArrowUp':
+                    newGridZ -= 1;
+                    break;
+                case 'KeyS':
+                case 'ArrowDown':
+                    newGridZ += 1;
+                    break;
+                case 'KeyA':
+                case 'ArrowLeft':
+                    newGridX -= 1;
+                    break;
+                case 'KeyD':
+                case 'ArrowRight':
+                    newGridX += 1;
+                    break;
+                default:
+                    return; // Invalid key, no movement
             }
             
-            // Camera follows character
-            camera.position.x = characterPosition.x;
-            camera.position.z = characterPosition.z + 8;
-            camera.lookAt(characterPosition.x, 0, characterPosition.z);
+            // Check if the new position is valid (within bounds and not occupied)
+            if (isValidGridPosition(newGridX, newGridZ)) {
+                // Update character grid position
+                characterGridPos.x = newGridX;
+                characterGridPos.z = newGridZ;
+                
+                // Convert to world coordinates and move character
+                const worldPos = gridToWorld(newGridX, newGridZ);
+                characterPosition.x = worldPos.x;
+                characterPosition.z = worldPos.z;
+                
+                // Animate character to new position
+                animateCharacterToPosition(worldPos);
+                
+                // Update UI
+                updatePositionDisplay();
+            }
+        }
+        
+        function animateCharacterToPosition(targetPos) {
+            // Simple instant movement for now (could be made smooth with tweening)
+            character.position.x = targetPos.x;
+            character.position.z = targetPos.z;
             
-            // Update UI with current position
+            // Update camera to follow character
+            camera.position.x = targetPos.x;
+            camera.position.z = targetPos.z + 8;
+            camera.lookAt(targetPos.x, 0, targetPos.z);
+        }
+        
+        function updatePositionDisplay() {
             const positionDisplay = document.querySelector('#ui div:nth-child(3)');
             if (positionDisplay) {
-                positionDisplay.textContent = `📍 Position: (${Math.round(characterPosition.x)}, ${Math.round(characterPosition.z)})`;
+                positionDisplay.textContent = `📍 Grid: (${characterGridPos.x}, ${characterGridPos.z})`;
             }
+        }
+        
+        function updateCharacterAnimations() {
+            // Character idle animation - subtle bobbing
+            character.position.y = 0.8 + Math.sin(Date.now() * 0.003) * 0.02;
+            
+            // Slight rotation for life
+            character.rotation.y = Math.sin(Date.now() * 0.002) * 0.05;
         }
         
         function animate() {
             requestAnimationFrame(animate);
             
-            updateCharacterMovement();
+            updateCharacterAnimations();
             
             // Animate water
             const water = world.children.find(child => 
