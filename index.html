@@ -3,29 +3,470 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zelda-Inspired 2.5D Adventure</title>
+    <title>Drowned Heart - A Cursed Tale of Love and Betrayal</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
             padding: 0;
-            background: #1a2f0a;
+            background: #0a1428;
             font-family: 'Courier New', monospace;
             overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
         
-        #gameContainer {
+        /* =================
+           MENU STYLES 
+           ================= */
+        
+        /* Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a1428;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 1;
+            transition: opacity 1.5s ease-out;
+        }
+        
+        .splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .splash-logo {
+            max-width: 600px;
+            width: 90%;
+            height: auto;
+            margin-bottom: 3rem;
+            filter: drop-shadow(0 0 20px rgba(135, 206, 235, 0.6));
+            animation: 
+                logoGlow 4s ease-in-out infinite alternate,
+                logoFloat 6s ease-in-out infinite,
+                logoSway 8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes logoGlow {
+            from { 
+                filter: drop-shadow(0 0 20px rgba(135, 206, 235, 0.6));
+            }
+            to { 
+                filter: drop-shadow(0 0 30px rgba(135, 206, 235, 0.9)) drop-shadow(0 0 60px rgba(70, 130, 180, 0.4));
+            }
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px);
+            }
+            25% { 
+                transform: translateY(-8px) translateX(2px);
+            }
+            50% { 
+                transform: translateY(-12px) translateX(0px);
+            }
+            75% { 
+                transform: translateY(-5px) translateX(-2px);
+            }
+        }
+        
+        @keyframes logoSway {
+            0%, 100% { 
+                transform: rotate(0deg) scale(1);
+            }
+            50% { 
+                transform: rotate(1deg) scale(1.02);
+            }
+        }
+        
+        .splash-prompt {
+            font-size: 1.4rem;
+            color: #F4A460;
+            text-shadow: 2px 2px 0px #1a365d;
+            animation: promptPulse 2s ease-in-out infinite;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+        }
+        
+        @keyframes promptPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Main Menu - initially hidden */
+        .main-menu {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1.5s ease-out;
+            transition-delay: 0.5s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .main-menu.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .main-menu.hidden {
+            display: none;
+        }
+        
+        /* WebGL Shader Canvas */
+        #shaderCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 2s ease-in;
+        }
+        
+        #shaderCanvas.show {
+            opacity: 0.8;
+        }
+        
+        #shaderCanvas.hidden {
+            opacity: 0;
+        }
+        
+        /* Main menu logo */
+        .main-logo {
+            max-width: 400px;
+            width: 70%;
+            height: auto;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 15px rgba(135, 206, 235, 0.5));
+            animation: 
+                mainLogoGlow 4s ease-in-out infinite alternate,
+                mainLogoFloat 7s ease-in-out infinite,
+                mainLogoBreath 5s ease-in-out infinite alternate;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .main-logo:hover {
+            animation-play-state: paused;
+            transform: scale(1.05) translateY(-3px);
+            filter: drop-shadow(0 0 30px rgba(135, 206, 235, 0.8)) drop-shadow(0 0 60px rgba(70, 130, 180, 0.4));
+        }
+        
+        @keyframes mainLogoGlow {
+            from { 
+                filter: drop-shadow(0 0 15px rgba(135, 206, 235, 0.5));
+            }
+            to { 
+                filter: drop-shadow(0 0 25px rgba(135, 206, 235, 0.8)) drop-shadow(0 0 50px rgba(70, 130, 180, 0.3));
+            }
+        }
+        
+        @keyframes mainLogoFloat {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px);
+            }
+            33% { 
+                transform: translateY(-6px) translateX(1px);
+            }
+            66% { 
+                transform: translateY(-3px) translateX(-1px);
+            }
+        }
+        
+        @keyframes mainLogoBreath {
+            0%, 100% { 
+                transform: scale(1) rotate(0deg);
+            }
+            50% { 
+                transform: scale(1.01) rotate(0.5deg);
+            }
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #F4A460;
+            text-shadow: 2px 2px 0px #1a365d;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+            opacity: 0.9;
+        }
+        
+        /* Menu container - simplified */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 1rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        /* Menu buttons */
+        .menu-item {
+            display: block;
+            width: 320px;
+            padding: 18px 35px;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3a5f, #2c5282);
+            color: #F4A460;
+            text-decoration: none;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border: 3px solid #4682B4;
+            border-radius: 12px;
+            text-shadow: 2px 2px 0px #1a365d;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        
+        .menu-item:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(135, 206, 235, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .menu-item:hover {
+            background: linear-gradient(135deg, #2c5282, #4682B4);
+            box-shadow: 0 6px 20px rgba(135, 206, 235, 0.4);
+            transform: translateY(-3px);
+            border-color: #87CEEB;
+            color: #87CEEB;
+        }
+        
+        .menu-item:hover:before {
+            left: 100%;
+        }
+        
+        .menu-item:active {
+            transform: translateY(0px);
+            box-shadow: 0 0 10px rgba(135, 206, 235, 0.4);
+        }
+        
+        /* Special styling for different menu items */
+        .menu-item.start-game {
+            background: linear-gradient(135deg, #4682B4, #87CEEB);
+            animation: pulse 2s infinite;
+            color: #ffffff;
+            font-weight: bolder;
+            text-shadow: 
+                2px 2px 0px #1a365d,
+                0px 0px 10px rgba(26, 54, 93, 0.8);
+            box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4);
+            transform: scale(1.05);
+        }
+        
+        @keyframes pulse {
+            0% { 
+                box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4), 0 0 0 0 rgba(135, 206, 235, 0.7);
+            }
+            70% { 
+                box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4), 0 0 0 15px rgba(135, 206, 235, 0);
+            }
+            100% { 
+                box-shadow: 0 6px 20px rgba(70, 130, 180, 0.4), 0 0 0 0 rgba(135, 206, 235, 0);
+            }
+        }
+        
+        .menu-item.start-game:hover {
+            background: linear-gradient(135deg, #87CEEB, #B0E0E6);
+            color: #ffffff;
+            text-shadow: 
+                2px 2px 0px #1a365d,
+                0px 0px 15px rgba(26, 54, 93, 0.9);
+            transform: scale(1.08);
+            box-shadow: 0 8px 25px rgba(135, 206, 235, 0.6);
+        }
+        
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            color: #F4A460;
+            font-size: 0.9rem;
+            text-shadow: 1px 1px 0px #1a365d;
+            font-style: italic;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #4682B4;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(135, 206, 235, 0.5);
+            scrollbar-width: thin;
+            scrollbar-color: #4682B4 rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            color: #87CEEB;
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px #1a365d;
+            font-family: 'Georgia', serif;
+        }
+        
+        .modal-body {
+            color: #F4A460;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            text-shadow: 1px 1px 0px #1a365d;
+        }
+        
+        .modal-body h3 {
+            color: #87CEEB;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-family: 'Georgia', serif;
+        }
+        
+        .modal-body ul {
+            padding-left: 20px;
+        }
+        
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: #87CEEB;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: #F4A460;
+        }
+        
+        .key-combo {
+            background: rgba(70, 130, 180, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #4682B4;
+            font-family: 'Courier New', monospace;
+            color: #87CEEB;
+        }
+        
+        /* Webkit scrollbar styling */
+        .modal-content::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        .modal-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(70, 130, 180, 0.2);
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #4682B4, #2c5282);
+            border-radius: 8px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(135, 206, 235, 0.3);
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #87CEEB, #4682B4);
+            box-shadow: 0 2px 8px rgba(135, 206, 235, 0.5);
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #87CEEB, #5a9fd4);
+        }
+        
+        .modal-content::-webkit-scrollbar-corner {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        /* =================
+           GAME STYLES 
+           ================= */
+        
+        .game-container {
+            display: none;
             width: 100vw;
             height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #1a2f0a;
+            z-index: 5;
+        }
+        
+        .game-container.active {
             display: flex;
             justify-content: center;
             align-items: center;
         }
         
-        canvas {
+        .game-canvas {
             display: block;
         }
         
-        #ui {
+        .game-ui {
             position: absolute;
             top: 20px;
             left: 20px;
@@ -41,13 +482,13 @@
             min-width: 120px;
         }
         
-        #ui div {
+        .game-ui div {
             margin: 5px 0;
             display: flex;
             align-items: center;
         }
         
-        .controls {
+        .game-controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
@@ -60,7 +501,7 @@
             border: 2px solid #8B4513;
         }
         
-        .minimap {
+        .game-minimap {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -90,56 +531,524 @@
             border-radius: 5px;
             background: rgba(0, 0, 0, 0.3);
         }
+        
+        /* Back to menu button */
+        .back-to-menu {
+            position: absolute;
+            top: 20px;
+            right: 190px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #1e3a5f, #2c5282);
+            color: #F4A460;
+            border: 2px solid #4682B4;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Georgia', serif;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .back-to-menu:hover {
+            background: linear-gradient(135deg, #2c5282, #4682B4);
+            color: #87CEEB;
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-height: 700px) {
+            .main-logo {
+                max-width: 300px;
+                width: 60%;
+                margin-bottom: 0.5rem;
+            }
+            .subtitle {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+            .menu-container {
+                gap: 15px;
+            }
+            .menu-item {
+                padding: 15px 30px;
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .menu-item {
+                width: 280px;
+                font-size: 1.2rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        <div id="ui">
+    <!-- Splash Screen -->
+    <div id="splashScreen" class="splash-screen">
+        <img src="assets/img/logo.png" alt="Drowned Heart" class="splash-logo">
+        <div class="splash-prompt">Press any key to start...</div>
+    </div>
+    
+    <!-- Underwater Shader Background -->
+    <canvas id="shaderCanvas"></canvas>
+    
+    <!-- Background Music -->
+    <audio id="menuMusic" loop>
+        <source src="assets/ost/menu.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <!-- Main Menu Content -->
+    <div id="mainMenu" class="main-menu">
+        <img src="assets/img/logo.png" alt="Drowned Heart" class="main-logo" onclick="startGame()" title="Click to start game">
+        <div class="subtitle">A Cursed Tale of Love and Betrayal</div>
+    
+        <div class="menu-container">
+            <a href="#" class="menu-item start-game" onclick="startGame()">
+                ⚔️ START GAME
+            </a>
+            
+            <a href="#" class="menu-item" onclick="showLoadGame()">
+                📜 LOAD GAME
+            </a>
+            
+            <a href="#" class="menu-item" onclick="showOptions()">
+                ⚙️ OPTIONS
+            </a>
+            
+            <a href="#" class="menu-item" onclick="confirmExit()">
+                🚪 QUIT GAME
+            </a>
+        </div>
+    </div>
+    
+    <!-- Game Container -->
+    <div id="gameContainer" class="game-container">
+        <canvas id="gameCanvas" class="game-canvas"></canvas>
+        <button class="back-to-menu" onclick="backToMenu()">🏴‍☠️ Back to Menu</button>
+        <div class="game-ui">
             <div>♥♥♥ Health</div>
             <div>💎 Rupees: 0</div>
             <div>📍 Position: (0, 0)</div>
             <div id="essence-display">🔮 Essence: None</div>
         </div>
-        <div class="minimap">
+        <div class="game-minimap">
             <div class="minimap-title">Map</div>
             <canvas id="minimapCanvas" width="140" height="140"></canvas>
         </div>
-        <div class="controls">
+        <div class="game-controls">
             🎮 WASD or Arrow Keys to move<br>
             🔮 E - Get/Transfer Essence<br>
             🤝 F - Interact with Objects<br>
             📦 Push box by walking into it
         </div>
     </div>
-
+    
+    <!-- Modal for Options -->
+    <div id="optionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('optionsModal')">&times;</span>
+            <div class="modal-header">⚙️ Ship Options</div>
+            <div class="modal-body">
+                <h3>🎮 Graphics Settings</h3>
+                <ul>
+                    <li><strong>Shader Quality:</strong> High (Underwater Caustics)</li>
+                    <li><strong>Resolution:</strong> Adaptive</li>
+                    <li><strong>Frame Rate:</strong> 60 FPS Target</li>
+                </ul>
+                
+                <h3>🔊 Audio Settings</h3>
+                <ul>
+                    <li><strong>Background Music:</strong> Enabled</li>
+                    <li><strong>Sound Effects:</strong> Enabled</li>
+                    <li><strong>Volume:</strong> 50%</li>
+                </ul>
+                
+                <h3>🗺️ Controls</h3>
+                <ul>
+                    <li><span class="key-combo">WASD</span> or <span class="key-combo">Arrow Keys</span> - Navigate the cursed island</li>
+                    <li><span class="key-combo">E</span> - Absorb/Transfer amulet essence</li>
+                    <li><span class="key-combo">F</span> - Interact with objects</li>
+                    <li><span class="key-combo">Mouse</span> - Menu navigation</li>
+                </ul>
+                
+                <h3>⚡ Gameplay</h3>
+                <ul>
+                    <li><strong>Difficulty:</strong> Treacherous Waters</li>
+                    <li><strong>Auto-save:</strong> Captain's Log Enabled</li>
+                    <li><strong>Tutorial:</strong> Available</li>
+                </ul>
+                
+                <p style="margin-top: 25px; font-style: italic; color: #87CEEB;">
+                    "Configure your vessel for the cursed voyage ahead..."
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // ==========================================
+        // STATE MANAGEMENT
+        // ==========================================
+        let gameState = 'splash'; // splash, menu, game
+        let gameInitialized = false;
+        
+        // ==========================================
+        // MENU SYSTEM
+        // ==========================================
+        
+        // Audio system
+        const menuMusic = document.getElementById('menuMusic');
+        let volume = 0.5;
+        let splashMode = true;
+        
+        // WebGL Shader Setup
+        let canvas, gl, program, startTime;
+        
+        function initShader() {
+            canvas = document.getElementById('shaderCanvas');
+            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) {
+                console.log('WebGL not supported, falling back to solid background');
+                return;
+            }
+            
+            // Vertex shader
+            const vertexShaderSource = `
+                attribute vec2 a_position;
+                void main() {
+                    gl_Position = vec4(a_position, 0.0, 1.0);
+                }
+            `;
+            
+            // Fragment shader (converted from Shadertoy)
+            const fragmentShaderSource = `
+                precision highp float;
+                uniform vec2 u_resolution;
+                uniform float u_time;
+                
+                float length2(vec2 p){
+                    return dot(p,p);
+                }
+                
+                float noise(vec2 p){
+                    return fract(sin(fract(sin(p.x) * (43.13311)) + p.y) * 31.0011);
+                }
+                
+                float worley(vec2 p) {
+                    float d = 1e30;
+                    for (int xo = -1; xo <= 1; ++xo) {
+                        for (int yo = -1; yo <= 1; ++yo) {
+                            vec2 tp = floor(p) + vec2(float(xo), float(yo));
+                            d = min(d, length2(p - tp - noise(tp)));
+                        }
+                    }
+                    return 3.0*exp(-4.0*abs(2.5*d - 1.0));
+                }
+                
+                float fworley(vec2 p) {
+                    return sqrt(sqrt(sqrt(
+                        worley(p*5.0 + 0.05*u_time) *
+                        sqrt(worley(p * 50.0 + 0.12 + -0.1*u_time)) *
+                        sqrt(sqrt(worley(p * -10.0 + 0.03*u_time))))));
+                }
+                
+                void main() {
+                    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+                    float t = fworley(uv * u_resolution.xy / 1500.0);
+                    t *= exp(-length2(abs(0.7*uv - 1.0)));
+                    gl_FragColor = vec4(t * vec3(0.1, 1.1*t, pow(t, 0.5-t)), 1.0);
+                }
+            `;
+            
+            // Create and compile shaders
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+            
+            // Create program
+            program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program link error:', gl.getProgramInfoLog(program));
+                return;
+            }
+            
+            // Setup geometry (fullscreen quad)
+            const positions = [-1, -1, 1, -1, -1, 1, 1, 1];
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+            
+            const positionLocation = gl.getAttribLocation(program, 'a_position');
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            
+            // Start animation
+            startTime = Date.now();
+            resizeCanvas();
+            animateShader();
+        }
+        
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            
+            return shader;
+        }
+        
+        function resizeCanvas() {
+            if (!canvas || !gl) return;
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        
+        function animateShader() {
+            if (!gl || !program) return;
+            
+            const currentTime = (Date.now() - startTime) / 1000;
+            
+            gl.useProgram(program);
+            
+            // Set uniforms
+            const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            
+            const timeLocation = gl.getUniformLocation(program, 'u_time');
+            gl.uniform1f(timeLocation, currentTime);
+            
+            // Draw
+            gl.clearColor(0.04, 0.08, 0.16, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            
+            requestAnimationFrame(animateShader);
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            // Initialize the underwater shader
+            initShader();
+            
+            // Handle window resize
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Set music volume but don't start playing yet
+            menuMusic.volume = volume;
+        });
+        
+        // Splash screen transition
+        function transitionToMainMenu() {
+            if (!splashMode) return;
+            console.log('Starting transition to main menu');
+            
+            splashMode = false;
+            gameState = 'menu';
+            const splashScreen = document.getElementById('splashScreen');
+            const mainMenu = document.getElementById('mainMenu');
+            const shaderCanvas = document.getElementById('shaderCanvas');
+            
+            // Start the fade out
+            splashScreen.classList.add('fade-out');
+            
+            // Show shader background immediately
+            shaderCanvas.classList.add('show');
+            
+            // Try to start music immediately (user just interacted)
+            menuMusic.volume = volume;
+            console.log('Attempting to start music...');
+            menuMusic.play().then(() => {
+                console.log('Music started successfully');
+            }).catch(function(error) {
+                console.log('Audio autoplay prevented:', error);
+                setTimeout(() => {
+                    console.log('Trying music again...');
+                    menuMusic.play().catch(e => console.log('Second music attempt failed:', e));
+                }, 1000);
+            });
+            
+            // Show main menu after a delay
+            setTimeout(() => {
+                console.log('Showing main menu');
+                mainMenu.classList.add('show');
+            }, 800);
+            
+            // Remove splash screen from DOM after transition
+            setTimeout(() => {
+                console.log('Removing splash screen');
+                splashScreen.remove();
+            }, 2000);
+        }
+        
+        // Modal functions
+        function showLoadGame() {
+            console.log('🔄 Load Game functionality pending - save system not yet implemented');
+        }
+        
+        function showOptions() {
+            document.getElementById('optionsModal').style.display = 'block';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+        
+        function confirmExit() {
+            if (confirm('🚪 Are you sure you want to quit the game?\n\nYour cursed voyage has only just begun...')) {
+                window.close();
+            }
+        }
+        
+        // Handle clicks for audio interaction
+        document.addEventListener('click', function(event) {
+            // Try to start music on any click if it's not playing
+            if (gameState === 'menu' && menuMusic.paused) {
+                menuMusic.volume = volume;
+                menuMusic.play().then(() => {
+                    console.log('Music started via click');
+                }).catch(error => {
+                    console.log('Click music start failed:', error);
+                });
+            }
+        });
+        
+        // ==========================================
+        // GAME TRANSITION FUNCTIONS
+        // ==========================================
+        
+        function startGame() {
+            console.log('Starting game...');
+            gameState = 'game';
+            
+            // Hide menu elements
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('shaderCanvas').classList.add('hidden');
+            
+            // Stop menu music
+            menuMusic.pause();
+            
+            // Show game container
+            document.getElementById('gameContainer').classList.add('active');
+            
+            // Initialize game if not already done
+            if (!gameInitialized) {
+                initializeGame();
+                gameInitialized = true;
+            }
+        }
+        
+        function backToMenu() {
+            console.log('Back to menu...');
+            gameState = 'menu';
+            
+            // Hide game container
+            document.getElementById('gameContainer').classList.remove('active');
+            
+            // Show menu elements
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('shaderCanvas').classList.remove('hidden');
+            
+            // Start menu music
+            menuMusic.volume = volume;
+            menuMusic.play().catch(error => {
+                console.log('Failed to restart menu music:', error);
+            });
+        }
+        
+        // ==========================================
+        // KEYBOARD HANDLING
+        // ==========================================
+        
+        document.addEventListener('keydown', function(event) {
+            if (gameState === 'splash') {
+                // Any key during splash transitions to main menu
+                transitionToMainMenu();
+            } else if (gameState === 'menu') {
+                if (event.code === 'Escape') {
+                    // Handle modal closing or exit confirmation
+                    const modals = document.querySelectorAll('.modal');
+                    let modalOpen = false;
+                    modals.forEach(modal => {
+                        if (modal.style.display === 'block') {
+                            modal.style.display = 'none';
+                            modalOpen = true;
+                        }
+                    });
+                    if (!modalOpen) {
+                        confirmExit();
+                    }
+                } else if (event.code === 'Enter') {
+                    startGame();
+                }
+            } else if (gameState === 'game') {
+                if (event.code === 'Escape') {
+                    backToMenu();
+                } else {
+                    // Let game handle other keys
+                    handleGameKeyDown(event);
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', function(event) {
+            if (gameState === 'game') {
+                handleGameKeyUp(event);
+            }
+        });
+        
+        // ==========================================
+        // GAME CODE
+        // ==========================================
+        
         // Game variables
         let scene, camera, renderer, character, world;
         let keys = {};
         let keyPressed = {};
         let isMoving = false;
-        let movementSpeed = 0.15; // Animation speed for tile movement
+        let movementSpeed = 0.15;
         let minimapCanvas, minimapCtx;
         
         // Box and essence system
         let pushableBox;
-        let boxGridPos = { x: 2, z: 2 }; // Starting position
-        let playerEssence = null; // What essence the player is carrying
-        let boxEssence = null; // What essence the box currently has
-        let interactionObjects = []; // Objects that can give essence or be interacted with
+        let boxGridPos = { x: 2, z: 2 };
+        let playerEssence = null;
+        let boxEssence = null;
+        let interactionObjects = [];
         
         // Grid system
-        const TILE_SIZE = 2;  // Each tile is 2x2 units
-        const GRID_SIZE = 51; // 51x51 grid (odd number for center at (0,0))
+        const TILE_SIZE = 2;
+        const GRID_SIZE = 51;
         const HALF_GRID = Math.floor(GRID_SIZE / 2);
         
         // Character position in grid coordinates
         let characterGridPos = { x: 0, z: 0 };
         let characterPosition = { x: 0, z: 0 };
         
-        // Grid occupancy map (true = occupied, false = empty)
+        // Grid occupancy map
         let gridMap = {};
         
         // Initialize grid map
@@ -174,7 +1083,6 @@
             const withinBounds = gridX >= -HALF_GRID && gridX <= HALF_GRID && 
                                 gridZ >= -HALF_GRID && gridZ <= HALF_GRID;
             
-            // Also check if it's the box position (for pushing validation)
             const isBoxPosition = (gridX === boxGridPos.x && gridZ === boxGridPos.z);
             
             return withinBounds && !gridMap[key] && !isBoxPosition;
@@ -189,13 +1097,15 @@
         }
         
         // Initialize the game
-        function init() {
+        function initializeGame() {
+            console.log('Initializing Three.js game...');
+            
             // Initialize grid system
             initGridMap();
             
             // Create scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a2f0a); // Dark green to match boundaries
+            scene.background = new THREE.Color(0x1a2f0a);
             
             // Create orthographic camera for top-down 2.5D view
             const aspect = window.innerWidth / window.innerHeight;
@@ -223,10 +1133,10 @@
             setupLighting();
             createWorld();
             createCharacter();
-            setupControls();
             initMinimap();
             
             animate();
+            console.log('Game initialized successfully!');
         }
         
         function setupLighting() {
@@ -234,7 +1144,7 @@
             const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
             scene.add(ambientLight);
             
-            // Directional light for shadows (like sunlight)
+            // Directional light for shadows
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(5, 10, 5);
             directionalLight.castShadow = true;
@@ -252,15 +1162,12 @@
         function createWorld() {
             world = new THREE.Group();
             
-            // Create grid-based terrain
             createGridTerrain();
-            
-            // Create objects on specific grid tiles
             createTrees();
             createRocks();
             createWater();
             createPushableBox();
-            createTorch(); // First essence object
+            createTorch();
             
             scene.add(world);
         }
@@ -269,9 +1176,8 @@
             // Create individual tiles for the grid with subtle grid lines
             const tileGeometry = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
             const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x4a7c1e });
-            const grassMaterial2 = new THREE.MeshLambertMaterial({ color: 0x486b1d }); // Slightly different shade
+            const grassMaterial2 = new THREE.MeshLambertMaterial({ color: 0x486b1d });
             
-            // Create grid line material (more visible but still subtle)
             const gridLineMaterial = new THREE.LineBasicMaterial({ 
                 color: 0x3d6919, 
                 transparent: true, 
@@ -282,7 +1188,6 @@
                 for (let gridZ = -HALF_GRID; gridZ <= HALF_GRID; gridZ++) {
                     const worldPos = gridToWorld(gridX, gridZ);
                     
-                    // Create subtle checkerboard pattern for better grid visibility
                     const isEvenTile = (gridX + gridZ) % 2 === 0;
                     const material = isEvenTile ? grassMaterial : grassMaterial2;
                     
@@ -292,20 +1197,16 @@
                     tile.receiveShadow = true;
                     world.add(tile);
                     
-                    // Create a very subtle grid outline
+                    // Create grid outline
                     const halfTile = TILE_SIZE / 2;
                     const gridGeometry = new THREE.BufferGeometry();
                     const gridVertices = new Float32Array([
-                        // Bottom edge
                         -halfTile, 0.002, -halfTile,
                         halfTile, 0.002, -halfTile,
-                        // Right edge
                         halfTile, 0.002, -halfTile,
                         halfTile, 0.002, halfTile,
-                        // Top edge
                         halfTile, 0.002, halfTile,
                         -halfTile, 0.002, halfTile,
-                        // Left edge
                         -halfTile, 0.002, halfTile,
                         -halfTile, 0.002, -halfTile,
                     ]);
@@ -319,19 +1220,14 @@
         }
         
         function createTrees() {
-            // Define tree positions in grid coordinates
             const treeGridPositions = [
-                // Center area trees
                 { x: -4, z: -4 }, { x: 4, z: -4 }, { x: -4, z: 4 }, { x: 4, z: 4 },
                 { x: -6, z: 0 }, { x: 6, z: 0 }, { x: 0, z: -6 }, { x: 0, z: 6 },
-                // Scattered trees across the map
                 { x: -10, z: -8 }, { x: 8, z: -12 }, { x: -12, z: 10 }, { x: 12, z: 8 },
                 { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -15, z: 15 }, { x: 15, z: 15 },
                 { x: -8, z: -20 }, { x: 8, z: 20 }, { x: -20, z: 8 }, { x: 20, z: -8 },
                 { x: -18, z: 0 }, { x: 18, z: 0 }, { x: 0, z: -18 }, { x: 0, z: 18 },
-                // More scattered placement
                 { x: -22, z: -10 }, { x: 22, z: 10 }, { x: -10, z: 22 }, { x: 10, z: -22 },
-                // Edge trees (now that we can access the full grid)
                 { x: -24, z: -5 }, { x: 24, z: 5 }, { x: -5, z: -24 }, { x: 5, z: 24 },
                 { x: -25, z: 0 }, { x: 25, z: 0 }, { x: 0, z: -25 }, { x: 0, z: 25 },
                 { x: -23, z: 17 }, { x: 23, z: -17 }, { x: -17, z: 23 }, { x: 17, z: -23 }
@@ -357,19 +1253,16 @@
                     leaves.castShadow = true;
                     world.add(leaves);
                     
-                    // Mark this grid position as occupied
                     setGridOccupied(gridPos.x, gridPos.z, true);
                 }
             });
         }
         
         function createRocks() {
-            // Define rock positions in grid coordinates
             const rockGridPositions = [
                 { x: -3, z: -3 }, { x: 3, z: 3 }, { x: -3, z: 3 }, { x: 5, z: -2 },
                 { x: -7, z: 2 }, { x: 9, z: -5 }, { x: -11, z: -7 }, { x: 13, z: 6 },
                 { x: -16, z: 12 }, { x: 14, z: -16 }, 
-                // Additional rocks near the edges
                 { x: -21, z: -3 }, { x: 21, z: 3 }, { x: -3, z: -21 }, { x: 3, z: 21 },
                 { x: -19, z: 8 }, { x: 19, z: -8 }, { x: -8, z: 19 }, { x: 8, z: -19 },
                 { x: -24, z: 12 }, { x: 24, z: -12 }
@@ -387,14 +1280,12 @@
                     rock.receiveShadow = true;
                     world.add(rock);
                     
-                    // Mark this grid position as occupied
                     setGridOccupied(gridPos.x, gridPos.z, true);
                 }
             });
         }
         
         function createWater() {
-            // Create a small pond that occupies multiple tiles
             const pondTiles = [
                 { x: -8, z: -8 }, { x: -7, z: -8 }, { x: -6, z: -8 },
                 { x: -8, z: -7 }, { x: -7, z: -7 }, { x: -6, z: -7 },
@@ -417,7 +1308,6 @@
                     water.position.set(worldPos.x, 0.02, worldPos.z);
                     world.add(water);
                     
-                    // Mark this grid position as occupied (player can't walk on water)
                     setGridOccupied(gridPos.x, gridPos.z, true);
                 }
             });
@@ -426,7 +1316,6 @@
         function createPushableBox() {
             const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
             
-            // Create box geometry
             const boxGeometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
             const boxMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0x8B4513,
@@ -438,10 +1327,8 @@
             pushableBox.castShadow = true;
             pushableBox.receiveShadow = true;
             
-            // Add some box details
             const edgeMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
             
-            // Add corner details
             for (let i = 0; i < 8; i++) {
                 const corner = new THREE.Mesh(
                     new THREE.SphereGeometry(0.08),
@@ -455,18 +1342,14 @@
             }
             
             world.add(pushableBox);
-            
-            // Mark box position as occupied
             setGridOccupied(boxGridPos.x, boxGridPos.z, true);
         }
         
         function createTorch() {
-            // Create a torch object that can give "fire" essence
             const torchPos = { x: -5, z: 3 };
             const torchWorldPos = gridToWorld(torchPos.x, torchPos.z);
             
             if (isValidGridPosition(torchPos.x, torchPos.z)) {
-                // Torch base
                 const baseGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5);
                 const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
                 const torchBase = new THREE.Mesh(baseGeometry, baseMaterial);
@@ -474,7 +1357,6 @@
                 torchBase.castShadow = true;
                 world.add(torchBase);
                 
-                // Flame effect
                 const flameGeometry = new THREE.SphereGeometry(0.3, 8, 6);
                 const flameMaterial = new THREE.MeshLambertMaterial({ 
                     color: 0xff4500,
@@ -486,7 +1368,6 @@
                 flame.scale.y = 1.3;
                 world.add(flame);
                 
-                // Store torch info for interaction
                 interactionObjects.push({
                     gridPos: torchPos,
                     type: 'torch',
@@ -496,21 +1377,17 @@
                     name: 'Torch'
                 });
                 
-                // Mark position as occupied
                 setGridOccupied(torchPos.x, torchPos.z, true);
             }
         }
         
         function createCharacter() {
-            // Create a simple character representation
-            // In a real implementation, you'd load the sprite here
             const characterGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.4);
             const characterMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0xFF69B4  // Magenta, matching the sprite
+                color: 0xFF69B4
             });
             character = new THREE.Mesh(characterGeometry, characterMaterial);
             
-            // Position character at grid center (0, 0)
             characterGridPos = { x: 0, z: 0 };
             const worldPos = gridToWorld(characterGridPos.x, characterGridPos.z);
             character.position.set(worldPos.x, 0.8, worldPos.z);
@@ -520,14 +1397,12 @@
             character.castShadow = true;
             scene.add(character);
             
-            // Add a simple face
             const faceGeometry = new THREE.SphereGeometry(0.15);
             const faceMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDDAA });
             const face = new THREE.Mesh(faceGeometry, faceMaterial);
             face.position.set(0, 0.3, 0.25);
             character.add(face);
             
-            // Add eyes
             const eyeGeometry = new THREE.SphereGeometry(0.03);
             const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
             
@@ -540,42 +1415,39 @@
             face.add(rightEye);
         }
         
-        function setupControls() {
-            document.addEventListener('keydown', (event) => {
-                if (!keys[event.code] && !keyPressed[event.code]) {
-                    keys[event.code] = true;
-                    keyPressed[event.code] = true;
-                    
-                    // Handle movement
-                    if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
-                        handleGridMovement(event.code);
-                    }
-                    // Handle essence system
-                    else if (event.code === 'KeyE') {
-                        handleEssenceAction();
-                    }
-                    // Handle world interaction
-                    else if (event.code === 'KeyF') {
-                        handleWorldInteraction();
-                    }
+        // Game input handlers
+        function handleGameKeyDown(event) {
+            if (!keys[event.code] && !keyPressed[event.code]) {
+                keys[event.code] = true;
+                keyPressed[event.code] = true;
+                
+                // Handle movement
+                if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+                    handleGridMovement(event.code);
                 }
-            });
-            
-            document.addEventListener('keyup', (event) => {
-                keys[event.code] = false;
-                keyPressed[event.code] = false;
-            });
+                // Handle essence system
+                else if (event.code === 'KeyE') {
+                    handleEssenceAction();
+                }
+                // Handle world interaction
+                else if (event.code === 'KeyF') {
+                    handleWorldInteraction();
+                }
+            }
+        }
+        
+        function handleGameKeyUp(event) {
+            keys[event.code] = false;
+            keyPressed[event.code] = false;
         }
         
         function handleGridMovement(keyCode) {
-            // Don't allow movement if already moving
             if (isMoving) return;
             
             let newGridX = characterGridPos.x;
             let newGridZ = characterGridPos.z;
             let direction = '';
             
-            // Determine new grid position based on key pressed
             switch(keyCode) {
                 case 'KeyW':
                 case 'ArrowUp':
@@ -598,12 +1470,11 @@
                     direction = 'right';
                     break;
                 default:
-                    return; // Invalid key, no movement
+                    return;
             }
             
             // Check if there's a box in the way that needs to be pushed
             if (boxGridPos.x === newGridX && boxGridPos.z === newGridZ) {
-                // Calculate where the box would move
                 let boxNewX = boxGridPos.x;
                 let boxNewZ = boxGridPos.z;
                 
@@ -614,19 +1485,14 @@
                     case 'right': boxNewX += 1; break;
                 }
                 
-                // Check if box can move to new position
                 if (isValidGridPosition(boxNewX, boxNewZ)) {
-                    // Move both player and box
                     pushBox(boxNewX, boxNewZ);
                     startMovementAnimation(newGridX, newGridZ, direction);
                 }
-                // If box can't move, player can't move either
                 return;
             }
             
-            // Check if the new position is valid (within bounds and not occupied)
             if (isValidGridPosition(newGridX, newGridZ)) {
-                // Start movement animation
                 startMovementAnimation(newGridX, newGridZ, direction);
             }
         }
@@ -641,21 +1507,17 @@
         function startMovementAnimation(newGridX, newGridZ, direction) {
             isMoving = true;
             
-            // Set up movement data
             movementData.startPos.x = characterPosition.x;
             movementData.startPos.z = characterPosition.z;
             movementData.endPos = gridToWorld(newGridX, newGridZ);
             movementData.progress = 0;
             movementData.direction = direction;
             
-            // Rotate character based on direction
             rotateCharacterForDirection(direction);
             
-            // Update grid position immediately (for logic)
             characterGridPos.x = newGridX;
             characterGridPos.z = newGridZ;
             
-            // Update UI
             updatePositionDisplay();
             updateMinimap();
         }
@@ -683,21 +1545,17 @@
             movementData.progress += movementSpeed;
             
             if (movementData.progress >= 1) {
-                // Movement complete
                 movementData.progress = 1;
                 isMoving = false;
             }
             
-            // Smooth interpolation between start and end positions
             const t = easeInOutCubic(movementData.progress);
             characterPosition.x = lerp(movementData.startPos.x, movementData.endPos.x, t);
             characterPosition.z = lerp(movementData.startPos.z, movementData.endPos.z, t);
             
-            // Update character and camera positions
             character.position.x = characterPosition.x;
             character.position.z = characterPosition.z;
             
-            // Camera follows smoothly
             camera.position.x = characterPosition.x;
             camera.position.z = characterPosition.z + 8;
             camera.lookAt(characterPosition.x, 0, characterPosition.z);
@@ -712,17 +1570,13 @@
         }
         
         function pushBox(newX, newZ) {
-            // Clear old position
             setGridOccupied(boxGridPos.x, boxGridPos.z, false);
             
-            // Update box position
             boxGridPos.x = newX;
             boxGridPos.z = newZ;
             
-            // Set new position as occupied
             setGridOccupied(newX, newZ, true);
             
-            // Animate box to new position
             const newWorldPos = gridToWorld(newX, newZ);
             pushableBox.position.x = newWorldPos.x;
             pushableBox.position.z = newWorldPos.z;
@@ -732,24 +1586,19 @@
         
         function handleEssenceAction() {
             if (playerEssence === null) {
-                // Try to get essence from nearby object
                 getEssenceFromObject();
             } else {
-                // Try to transfer essence to box
                 transferEssenceToBox();
             }
         }
         
         function handleWorldInteraction() {
-            // For future implementation - levers, switches, etc.
             console.log("World interaction - coming soon!");
         }
         
         function getEssenceFromObject() {
-            // Get the tile the player is facing
             const facingPos = getFacingPosition();
             
-            // Check if there's an interaction object at that position
             const obj = interactionObjects.find(o => 
                 o.gridPos.x === facingPos.x && o.gridPos.z === facingPos.z
             );
@@ -758,9 +1607,8 @@
                 playerEssence = obj.essence;
                 updateEssenceDisplay();
                 
-                // Visual feedback - make object glow or dim
                 if (obj.flame) {
-                    obj.flame.material.opacity = 0.4; // Dim the flame
+                    obj.flame.material.opacity = 0.4;
                 }
                 
                 console.log(`Collected ${obj.essence} essence from ${obj.name}!`);
@@ -768,7 +1616,6 @@
         }
         
         function transferEssenceToBox() {
-            // Check if player is next to the box
             if (isNextToBox()) {
                 boxEssence = playerEssence;
                 playerEssence = null;
@@ -780,16 +1627,13 @@
         }
         
         function getFacingPosition() {
-            // This is a simplified version - you might want to track actual facing direction
-            // For now, we'll check all adjacent positions
             const adjacentPositions = [
-                { x: characterGridPos.x, z: characterGridPos.z - 1 }, // North
-                { x: characterGridPos.x, z: characterGridPos.z + 1 }, // South
-                { x: characterGridPos.x - 1, z: characterGridPos.z }, // West
-                { x: characterGridPos.x + 1, z: characterGridPos.z }  // East
+                { x: characterGridPos.x, z: characterGridPos.z - 1 },
+                { x: characterGridPos.x, z: characterGridPos.z + 1 },
+                { x: characterGridPos.x - 1, z: characterGridPos.z },
+                { x: characterGridPos.x + 1, z: characterGridPos.z }
             ];
             
-            // Return the first valid adjacent position with an object
             for (let pos of adjacentPositions) {
                 const obj = interactionObjects.find(o => 
                     o.gridPos.x === pos.x && o.gridPos.z === pos.z
@@ -797,7 +1641,7 @@
                 if (obj) return pos;
             }
             
-            return { x: characterGridPos.x, z: characterGridPos.z - 1 }; // Default to north
+            return { x: characterGridPos.x, z: characterGridPos.z - 1 };
         }
         
         function isNextToBox() {
@@ -820,11 +1664,9 @@
         
         function updateBoxAppearance() {
             if (boxEssence === 'fire') {
-                // Make box glow orange/red
                 pushableBox.material.color.setHex(0xff4500);
                 pushableBox.material.emissive.setHex(0x330000);
             } else {
-                // Default appearance
                 pushableBox.material.color.setHex(0x8B4513);
                 pushableBox.material.emissive.setHex(0x000000);
             }
@@ -845,7 +1687,7 @@
         }
         
         function updatePositionDisplay() {
-            const positionDisplay = document.querySelector('#ui div:nth-child(3)');
+            const positionDisplay = document.querySelector('#gameContainer .game-ui div:nth-child(3)');
             if (positionDisplay) {
                 positionDisplay.textContent = `📍 Grid: (${characterGridPos.x}, ${characterGridPos.z})`;
             }
@@ -861,52 +1703,42 @@
             const canvas = minimapCanvas;
             const ctx = minimapCtx;
             const size = 140;
-            const viewRadius = 8; // Optimized for perfect centering
+            const viewRadius = 8;
             
-            // Clear canvas and add background
             ctx.clearRect(0, 0, size, size);
             
-            // Add a subtle background to show the minimap bounds
             ctx.fillStyle = 'rgba(26, 47, 10, 0.5)';
             ctx.fillRect(0, 0, size, size);
             
-            // Calculate tile size on minimap and center it properly
             const gridCount = (viewRadius * 2 + 1);
             const tileSize = Math.floor(size / gridCount);
             const totalGridSize = tileSize * gridCount;
-            // Use precise centering - no Math.floor to avoid rounding errors
             const offset = (size - totalGridSize) / 2;
             
-            // Get player position
             const playerX = characterGridPos.x;
             const playerZ = characterGridPos.z;
             
-            // Draw tiles around player
             for (let x = playerX - viewRadius; x <= playerX + viewRadius; x++) {
                 for (let z = playerZ - viewRadius; z <= playerZ + viewRadius; z++) {
                     const screenX = offset + (x - (playerX - viewRadius)) * tileSize;
                     const screenZ = offset + (z - (playerZ - viewRadius)) * tileSize;
                     
-                    // Determine tile type
                     const key = `${x},${z}`;
                     const isOccupied = gridMap[key];
                     const isOutOfBounds = x < -HALF_GRID || x > HALF_GRID || z < -HALF_GRID || z > HALF_GRID;
                     
-                    // Choose color
                     let color;
                     if (isOutOfBounds) {
-                        color = 'rgba(26, 47, 10, 0.8)'; // Same as background but slightly more opaque
+                        color = 'rgba(26, 47, 10, 0.8)';
                     } else if (isOccupied) {
-                        // Different colors for different objects
                         if (isWaterTile(x, z)) {
                             color = '#1E90FF';
                         } else if (isTreeTile(x, z)) {
                             color = '#2d5016';
                         } else {
-                            color = '#555555'; // Rock
+                            color = '#555555';
                         }
                     } else {
-                        // Use checkerboard pattern on minimap too
                         const isEvenTile = (x + z) % 2 === 0;
                         color = isEvenTile ? '#4a7c1e' : '#486b1d';
                     }
@@ -914,7 +1746,6 @@
                     ctx.fillStyle = color;
                     ctx.fillRect(screenX, screenZ, tileSize, tileSize);
                     
-                    // Add subtle grid effect on minimap for valid tiles
                     if (!isOutOfBounds) {
                         ctx.strokeStyle = 'rgba(61, 105, 25, 0.4)';
                         ctx.lineWidth = 0.5;
@@ -928,23 +1759,20 @@
                 const boxScreenX = offset + (boxGridPos.x - (playerX - viewRadius)) * tileSize;
                 const boxScreenZ = offset + (boxGridPos.z - (playerZ - viewRadius)) * tileSize;
                 
-                // Box appearance based on essence
-                let boxColor = '#8B4513'; // Default brown
+                let boxColor = '#8B4513';
                 if (boxEssence === 'fire') {
-                    boxColor = '#ff4500'; // Fire orange
+                    boxColor = '#ff4500';
                 } else if (boxEssence === 'wind') {
-                    boxColor = '#87CEEB'; // Sky blue
+                    boxColor = '#87CEEB';
                 } else if (boxEssence === 'cannon') {
-                    boxColor = '#2F4F4F'; // Dark slate
+                    boxColor = '#2F4F4F';
                 } else if (boxEssence === 'steel') {
-                    boxColor = '#C0C0C0'; // Silver
+                    boxColor = '#C0C0C0';
                 }
                 
-                // Box outline
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(boxScreenX - 1, boxScreenZ - 1, tileSize + 2, tileSize + 2);
                 
-                // Box
                 ctx.fillStyle = boxColor;
                 ctx.fillRect(boxScreenX, boxScreenZ, tileSize, tileSize);
             }
@@ -953,23 +1781,21 @@
             const playerScreenX = offset + viewRadius * tileSize;
             const playerScreenZ = offset + viewRadius * tileSize;
             
-            // Player outline
             ctx.fillStyle = '#000000';
             ctx.fillRect(playerScreenX - 1, playerScreenZ - 1, tileSize + 2, tileSize + 2);
             
-            // Player
             ctx.fillStyle = '#FF69B4';
             ctx.fillRect(playerScreenX, playerScreenZ, tileSize, tileSize);
             
-            // Draw essence objects (torch, etc.) if in view
+            // Draw essence objects
             interactionObjects.forEach(obj => {
                 if (Math.abs(obj.gridPos.x - playerX) <= viewRadius && Math.abs(obj.gridPos.z - playerZ) <= viewRadius) {
                     const objScreenX = offset + (obj.gridPos.x - (playerX - viewRadius)) * tileSize;
                     const objScreenZ = offset + (obj.gridPos.z - (playerZ - viewRadius)) * tileSize;
                     
-                    let objColor = '#ff4500'; // Default fire color for torch
+                    let objColor = '#ff4500';
                     if (obj.type === 'torch') {
-                        objColor = playerEssence === obj.essence ? '#cc3300' : '#ff4500'; // Dim if essence taken
+                        objColor = playerEssence === obj.essence ? '#cc3300' : '#ff4500';
                     }
                     
                     ctx.fillStyle = objColor;
@@ -1004,17 +1830,16 @@
         }
         
         function updateCharacterAnimations() {
-            // Only apply idle animation when not moving
             if (!isMoving) {
-                // Character idle animation - subtle bobbing
                 character.position.y = 0.8 + Math.sin(Date.now() * 0.003) * 0.02;
             } else {
-                // Walking animation - more pronounced bobbing
                 character.position.y = 0.8 + Math.sin(Date.now() * 0.02) * 0.1;
             }
         }
         
         function animate() {
+            if (gameState !== 'game') return;
+            
             requestAnimationFrame(animate);
             
             updateMovementAnimation();
@@ -1029,7 +1854,7 @@
                 water.material.opacity = 0.7 + Math.sin(Date.now() * 0.003) * 0.1;
             }
             
-            // Animate trees (slight sway)
+            // Animate trees
             world.children.forEach(child => {
                 if (child.material && child.material.color && 
                     child.material.color.getHex() === 0x228B22) {
@@ -1050,19 +1875,21 @@
         
         // Handle window resize
         window.addEventListener('resize', () => {
-            const aspect = window.innerWidth / window.innerHeight;
-            const frustumSize = 20;
-            camera.left = frustumSize * aspect / -2;
-            camera.right = frustumSize * aspect / 2;
-            camera.top = frustumSize / 2;
-            camera.bottom = frustumSize / -2;
-            camera.updateProjectionMatrix();
-            
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (gameInitialized) {
+                const aspect = window.innerWidth / window.innerHeight;
+                const frustumSize = 20;
+                camera.left = frustumSize * aspect / -2;
+                camera.right = frustumSize * aspect / 2;
+                camera.top = frustumSize / 2;
+                camera.bottom = frustumSize / -2;
+                camera.updateProjectionMatrix();
+                
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         });
         
-        // Start the game
-        init();
+        // Ensure smooth loading
+        document.body.style.opacity = '1';
     </script>
 </body>
 </html>

@@ -1,0 +1,99 @@
+**Doesn't Have a Name Right Now**  
+**Story Concept:**
+
+Pirates land on a shore and kidnap an antique dealer to examine his treasures to verify whether they are cursed or not. His son goes to rescue him.  
+The son infiltrates the pirate ship to save him. The ship heads to an island where the pirates believe they can break their curses.  
+An incident occurs that causes the father to fall under the curse. He touches the amulet, which turns him into a box that can change and become other objects. The son now carries the amulet, which allows him to transform his father into other objects, and he must find a way to escape the pirates and break his father's curse.
+
+**Characters:**  
+Father and Son: (Decide Names)  
+They live quietly near the port, working in the shop. The son is more focused on talking to the sailors and thinking about great adventures, and he has no interest in the family business. He dreams of adventures far from his father.
+
+Pirate Captain and his crew: (Decide Names)  
+Legendary pirate, angry because curses are constantly falling upon him and his crew for recklessly stealing cursed treasures.  
+They want to verify the safety of their treasures and so they kidnap an antique dealer.  
+They head to a cursed island where a legend says they can break its curses.
+
+**First world: Pirate Ship** 
+
+**Objects (MECHANICS)**
+
+* **Box:** Can be pushed
+
+	Can be used to push floor buttons.  
+	Can fill holes.
+
+* **Barrel:** Can be pushed, but it only stops when it crashes with another object / wall. When it crashes it leaves its leftovers on the floor
+
+	Can fill holes.
+
+* **Canon**: Can shoot through enemies / metal bars / leftovers
+
+	Must be reloaded to use.  
+	Too heavy to be turned around. Just moves in One axis
+
+* **Canon ball:** Needed for the canon to shot. Can be pushed.
+
+**Other assets**
+
+* Buttons: Can be pressed by the player and multiple objects.  
+* Wood Little Door: Can be opened by the Player.  
+* Metal Bars: Lock the player in a room. Can be destroyed with a canon.  
+* Relics: Can be found around the levels (In the future could unlock secrets, Easter eggs or skins in the game)
+
+**Enemies**
+
+Crew Pirate: Patrols around a specific zone. If it collides with the player he ***dies.***  
+Can be destroyed with Cannon and barrel. Can be pushed to holes.
+
+**Boss:**    
+	Captain of the ship and his kraken pet.
+
+**Level design**
+
+1. Introduction to the game.  
+2. **Teaching level with boxes.**  
+3. Boxes and holes.  
+4. Boxes and buttons.  
+5. Test level with boxes.  
+6. **Teaching level with barrels.**  
+7. Test level with barrels and leftovers.  
+8. Holes, barrels and boxes.  
+9. Buttons, barrels and boxes  
+10. **Teaching level with cannon, cannonball and Metal bars.**  
+11. Test level with Cannon, cannonball, boxes and pirates.  
+12. Free level  
+13. Free level  
+14. Free level  
+15. **Boss level**
+
+Assets that will be required:
+
+* Main character  
+* The Box  
+* Canon  
+* Cannonball  
+* Wood Box  
+* Wood Chair  
+* Wood Table  
+* Barrel  
+* Enemies (Pirates)  
+* Wood Floor  
+* Wood Little Door  
+* Button  
+* Lever  
+* Metal Bars  
+* Relics  
+* Big Wood Door  
+* Chains  
+* Ships parts (Floor, wall, stairs, Doors)  
+* Amulet  
+* Treasures  
+  * Gold  
+  * Rubies  
+  * Emeralds  
+  * Artifacts  
+  * Cups  
+  * Gold Statues  
+* Ron Bottle  
+* Ladder
