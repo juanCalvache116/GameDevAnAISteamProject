@@ -1221,87 +1221,89 @@
         function resetGameState() {
             console.log('🔄 Resetting game state...');
             
+            // Clear Three.js scene objects if they exist
+            if (character) {
+                scene.remove(character);
+                character.geometry.dispose();
+                character.material.dispose();
+                character = null;
+            }
+            if (world) {
+                // Dispose all children of the world group
+                while(world.children.length > 0){
+                    const object = world.children[0];
+                    scene.remove(object);
+                    if (object.geometry) object.geometry.dispose();
+                    if (object.material) object.material.dispose();
+                    world.remove(object);
+                }
+                scene.remove(world);
+                world = null;
+            }
+
             // Reset input state
             keys = {};
             keyPressed = {};
             isMoving = false;
-            
-            // Reset character position and movement
+
+            // Reset character position and movement (will be re-initialized by createCharacter)
             characterGridPos = { x: 0, z: 0 };
             characterPosition = { x: 0, z: 0 };
-            
+
             // Reset essence system
             playerEssence = null;
             boxEssence = null;
-            
-            // Reset box position
-            boxGridPos = { x: 2, z: 2 };
-            
+
+            // Reset box position to initial from level data (will be re-initialized by createPushableBox)
+            if (levelData.box) {
+                boxGridPos = { x: levelData.box.x, z: levelData.box.z };
+            }
+
+            // Clear interaction objects (will be re-populated by createTorch etc.)
+            interactionObjects = [];
+
             // Reset performance monitoring
             perfLast = performance.now();
             perfAcc = 0;
             perfFrames = 0;
-            
+
             // Remove FPS display if it exists
             const existingFpsDisplay = document.querySelector('.fps-counter');
             if (existingFpsDisplay) {
                 existingFpsDisplay.remove();
                 fpsDisplay = null;
             }
-            
+
             console.log('✅ Game state reset complete');
         }
-        
-        function startGame() {
+
+        async function startGame() {
             console.log('Starting game...');
             gameState = 'game';
-            
+
             // Hide menu elements
             document.getElementById('mainMenu').classList.add('hidden');
             document.getElementById('shaderCanvas').classList.add('hidden');
-            
+
             // Stop menu music
             menuMusic.pause();
-            
+
             // Show game container
             document.getElementById('gameContainer').classList.add('active');
-            
-            // Always reset game state when starting game (fixes control issues)
+
             if (gameInitialized) {
                 resetGameState();
-                // Re-initialize game objects to their starting positions
-                if (character) {
-                    const worldPos = gridToWorld(0, 0);
-                    character.position.set(worldPos.x, 0.8, worldPos.z);
-                    characterPosition.x = worldPos.x;
-                    characterPosition.z = worldPos.z;
-                    
-                    // Reset camera position
-                    camera.position.set(worldPos.x, 15, worldPos.z + 8);
-                    camera.lookAt(worldPos.x, 0, worldPos.z);
-                }
-                
-                // Reset pushable box position
-                if (pushableBox) {
-                    const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
-                    pushableBox.position.set(boxWorldPos.x, 0.9, boxWorldPos.z);
-                    updateBoxAppearance(); // Reset box appearance
-                }
-                
-                // Update UI displays
-                updatePositionDisplay();
-                updateEssenceDisplay();
-                updateMinimap();
-                
-                // Restart animation loop
-                animate();
             }
-            
-            // Initialize game if not already done (first time only)
-            if (!gameInitialized) {
-                initializeGame();
-                gameInitialized = true;
-            }
+
+            // Initialize game (or re-initialize if resetting) - now correctly awaited
+            await initializeGame();
+            gameInitialized = true;
+
+            // After initialization, update UI elements and start animation loop
+            updatePositionDisplay();
+            updateEssenceDisplay();
+            updateMinimap();
+            animate();
         }
         
         function backToMenu() {
@@ -1397,7 +1399,7 @@
         
         // Box and essence system
         let pushableBox;
-        let boxGridPos = { x: 2, z: 2 };
+        let boxGridPos; // Declare boxGridPos here
         let playerEssence = null;
         let boxEssence = null;
         let interactionObjects = [];
@@ -1413,6 +1415,7 @@
         
         // Grid occupancy map
         let gridMap = {};
+        let levelData = {}; // To store loaded level configuration
         
         // Initialize grid map
         function initGridMap() {
@@ -1446,7 +1449,8 @@
             const withinBounds = gridX >= -HALF_GRID && gridX <= HALF_GRID && 
                                 gridZ >= -HALF_GRID && gridZ <= HALF_GRID;
             
-            const isBoxPosition = (gridX === boxGridPos.x && gridZ === boxGridPos.z);
+            // Check against dynamic box position and any other occupied spots
+            const isBoxPosition = (boxGridPos && gridX === boxGridPos.x && gridZ === boxGridPos.z);
             
             return withinBounds && !gridMap[key] && !isBoxPosition;
         }
@@ -1460,8 +1464,16 @@
         }
         
                      // Initialize the game
-             function initializeGame() {
+             async function initializeGame() {
                  console.log('Initializing Three.js game...');
+                 
+                 // Load level data before creating the world
+                 levelData = await loadLevelData('level_0.cfg');
+                 if (Object.keys(levelData).length === 0) {
+                     console.error('Game initialization failed: Could not load level data.');
+                     // Potentially show an error message to the user or load a default empty level
+                     return;
+                 }
                  
                  // WebGL capability checks before proceeding
                  const testCanvas = document.createElement('canvas');
@@ -1627,104 +1639,87 @@
         }
         
         function createTrees() {
-            const treeGridPositions = [
-                { x: -4, z: -4 }, { x: 4, z: -4 }, { x: -4, z: 4 }, { x: 4, z: 4 },
-                { x: -6, z: 0 }, { x: 6, z: 0 }, { x: 0, z: -6 }, { x: 0, z: 6 },
-                { x: -10, z: -8 }, { x: 8, z: -12 }, { x: -12, z: 10 }, { x: 12, z: 8 },
-                { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -15, z: 15 }, { x: 15, z: 15 },
-                { x: -8, z: -20 }, { x: 8, z: 20 }, { x: -20, z: 8 }, { x: 20, z: -8 },
-                { x: -18, z: 0 }, { x: 18, z: 0 }, { x: 0, z: -18 }, { x: 0, z: 18 },
-                { x: -22, z: -10 }, { x: 22, z: 10 }, { x: -10, z: 22 }, { x: 10, z: -22 },
-                { x: -24, z: -5 }, { x: 24, z: 5 }, { x: -5, z: -24 }, { x: 5, z: 24 },
-                { x: -25, z: 0 }, { x: 25, z: 0 }, { x: 0, z: -25 }, { x: 0, z: 25 },
-                { x: -23, z: 17 }, { x: 23, z: -17 }, { x: -17, z: 23 }, { x: 17, z: -23 }
-            ];
-            
-            treeGridPositions.forEach(gridPos => {
-                if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                    
-                    // Tree trunk
-                    const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
-                    const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-                    trunk.position.set(worldPos.x, 1, worldPos.z);
-                    trunk.castShadow = true;
-                    world.add(trunk);
-                    
-                    // Tree leaves
-                    const leavesGeometry = new THREE.SphereGeometry(1.0);
-                    const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
-                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-                    leaves.position.set(worldPos.x, 2.5, worldPos.z);
-                    leaves.castShadow = true;
-                    world.add(leaves);
-                    
-                    setGridOccupied(gridPos.x, gridPos.z, true);
-                }
-            });
+            // Iterate over loaded tree positions
+            if (levelData.trees) {
+                levelData.trees.forEach(gridPos => {
+                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                        
+                        // Tree trunk
+                        const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
+                        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                        trunk.position.set(worldPos.x, 1, worldPos.z);
+                        trunk.castShadow = true;
+                        world.add(trunk);
+                        
+                        // Tree leaves
+                        const leavesGeometry = new THREE.SphereGeometry(1.0);
+                        const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                        const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                        leaves.position.set(worldPos.x, 2.5, worldPos.z);
+                        leaves.castShadow = true;
+                        world.add(leaves);
+                        
+                        setGridOccupied(gridPos.x, gridPos.z, true);
+                    }
+                });
+            }
         }
         
         function createRocks() {
-            const rockGridPositions = [
-                { x: -3, z: -3 }, { x: 3, z: 3 }, { x: -3, z: 3 }, { x: 5, z: -2 },
-                { x: -7, z: 2 }, { x: 9, z: -5 }, { x: -11, z: -7 }, { x: 13, z: 6 },
-                { x: -16, z: 12 }, { x: 14, z: -16 }, 
-                { x: -21, z: -3 }, { x: 21, z: 3 }, { x: -3, z: -21 }, { x: 3, z: 21 },
-                { x: -19, z: 8 }, { x: 19, z: -8 }, { x: -8, z: 19 }, { x: 8, z: -19 },
-                { x: -24, z: 12 }, { x: 24, z: -12 }
-            ];
-            
-            rockGridPositions.forEach(gridPos => {
-                if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                    
-                    const rockGeometry = new THREE.DodecahedronGeometry(0.6);
-                    const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
-                    const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-                    rock.position.set(worldPos.x, 0.3, worldPos.z);
-                    rock.castShadow = true;
-                    rock.receiveShadow = true;
-                    world.add(rock);
-                    
-                    setGridOccupied(gridPos.x, gridPos.z, true);
-                }
-            });
+            // Iterate over loaded rock positions
+            if (levelData.rocks) {
+                levelData.rocks.forEach(gridPos => {
+                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                        
+                        const rockGeometry = new THREE.DodecahedronGeometry(0.6);
+                        const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
+                        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                        rock.position.set(worldPos.x, 0.3, worldPos.z);
+                        rock.castShadow = true;
+                        rock.receiveShadow = true;
+                        world.add(rock);
+                        
+                        setGridOccupied(gridPos.x, gridPos.z, true);
+                    }
+                });
+            }
         }
         
         function createWater() {
-            const pondTiles = [
-                { x: -8, z: -8 }, { x: -7, z: -8 }, { x: -6, z: -8 },
-                { x: -8, z: -7 }, { x: -7, z: -7 }, { x: -6, z: -7 },
-                { x: -8, z: -6 }, { x: -7, z: -6 }, { x: -6, z: -6 }
-            ];
-            
-            const waterMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x1E90FF,
-                transparent: true,
-                opacity: 0.8
-            });
-            
-            pondTiles.forEach(gridPos => {
-                if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                    const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                    
-                    const waterGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
-                    const water = new THREE.Mesh(waterGeometry, waterMaterial);
-                    water.rotation.x = -Math.PI / 2;
-                    water.position.set(worldPos.x, 0.02, worldPos.z);
-                    world.add(water);
-                    
-                    setGridOccupied(gridPos.x, gridPos.z, true);
-                }
-            });
+            // Iterate over loaded water tile positions
+            if (levelData.water) {
+                levelData.water.forEach(gridPos => {
+                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
+                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
+                        
+                        const waterGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
+                        const waterMaterial = new THREE.MeshLambertMaterial({
+                            color: 0x1E90FF,
+                            transparent: true,
+                            opacity: 0.8
+                        });
+                        const water = new THREE.Mesh(waterGeometry, waterMaterial);
+                        water.rotation.x = -Math.PI / 2;
+                        water.position.set(worldPos.x, 0.02, worldPos.z);
+                        world.add(water);
+                        
+                        setGridOccupied(gridPos.x, gridPos.z, true);
+                    }
+                });
+            }
         }
         
         function createPushableBox() {
+            if (!levelData.box) return;
+
+            boxGridPos = { ...levelData.box }; // Initialize boxGridPos from levelData
             const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
-            
+
             const boxGeometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
-            const boxMaterial = new THREE.MeshLambertMaterial({ 
+            const boxMaterial = new THREE.MeshLambertMaterial({
                 color: 0x8B4513,
                 transparent: true,
                 opacity: 0.9
@@ -1733,9 +1728,9 @@
             pushableBox.position.set(boxWorldPos.x, 0.9, boxWorldPos.z);
             pushableBox.castShadow = true;
             pushableBox.receiveShadow = true;
-            
+
             const edgeMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-            
+
             for (let i = 0; i < 8; i++) {
                 const corner = new THREE.Mesh(
                     new THREE.SphereGeometry(0.08),
@@ -1747,15 +1742,17 @@
                 corner.position.set(x, y, z);
                 pushableBox.add(corner);
             }
-            
+
             world.add(pushableBox);
             setGridOccupied(boxGridPos.x, boxGridPos.z, true);
         }
         
         function createTorch() {
-            const torchPos = { x: -5, z: 3 };
+            if (!levelData.torch) return;
+
+            const torchPos = { ...levelData.torch }; // Initialize torchPos from levelData
             const torchWorldPos = gridToWorld(torchPos.x, torchPos.z);
-            
+
             if (isValidGridPosition(torchPos.x, torchPos.z)) {
                 const baseGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5);
                 const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -1763,9 +1760,9 @@
                 torchBase.position.set(torchWorldPos.x, 0.75, torchWorldPos.z);
                 torchBase.castShadow = true;
                 world.add(torchBase);
-                
+
                 const flameGeometry = new THREE.SphereGeometry(0.3, 8, 6);
-                const flameMaterial = new THREE.MeshLambertMaterial({ 
+                const flameMaterial = new THREE.MeshLambertMaterial({
                     color: 0xff4500,
                     transparent: true,
                     opacity: 0.8
@@ -1774,7 +1771,7 @@
                 flame.position.set(torchWorldPos.x, 1.8, torchWorldPos.z);
                 flame.scale.y = 1.3;
                 world.add(flame);
-                
+
                 interactionObjects.push({
                     gridPos: torchPos,
                     type: 'torch',
@@ -1783,7 +1780,7 @@
                     flame: flame,
                     name: 'Torch'
                 });
-                
+
                 setGridOccupied(torchPos.x, torchPos.z, true);
             }
         }
@@ -2212,28 +2209,13 @@
         }
         
         function isWaterTile(x, z) {
-            const pondTiles = [
-                { x: -8, z: -8 }, { x: -7, z: -8 }, { x: -6, z: -8 },
-                { x: -8, z: -7 }, { x: -7, z: -7 }, { x: -6, z: -7 },
-                { x: -8, z: -6 }, { x: -7, z: -6 }, { x: -6, z: -6 }
-            ];
-            return pondTiles.some(tile => tile.x === x && tile.z === z);
+            // Check against loaded water tiles
+            return levelData.water.some(tile => tile.x === x && tile.z === z);
         }
         
         function isTreeTile(x, z) {
-            const treeGridPositions = [
-                { x: -4, z: -4 }, { x: 4, z: -4 }, { x: -4, z: 4 }, { x: 4, z: 4 },
-                { x: -6, z: 0 }, { x: 6, z: 0 }, { x: 0, z: -6 }, { x: 0, z: 6 },
-                { x: -10, z: -8 }, { x: 8, z: -12 }, { x: -12, z: 10 }, { x: 12, z: 8 },
-                { x: -15, z: -15 }, { x: 15, z: -15 }, { x: -15, z: 15 }, { x: 15, z: 15 },
-                { x: -8, z: -20 }, { x: 8, z: 20 }, { x: -20, z: 8 }, { x: 20, z: -8 },
-                { x: -18, z: 0 }, { x: 18, z: 0 }, { x: 0, z: -18 }, { x: 0, z: 18 },
-                { x: -22, z: -10 }, { x: 22, z: 10 }, { x: -10, z: 22 }, { x: 10, z: -22 },
-                { x: -24, z: -5 }, { x: 24, z: 5 }, { x: -5, z: -24 }, { x: 5, z: 24 },
-                { x: -25, z: 0 }, { x: 25, z: 0 }, { x: 0, z: -25 }, { x: 0, z: 25 },
-                { x: -23, z: 17 }, { x: 23, z: -17 }, { x: -17, z: 23 }, { x: 17, z: -23 }
-            ];
-            return treeGridPositions.some(tile => tile.x === x && tile.z === z);
+            // Check against loaded tree positions
+            return levelData.trees.some(tile => tile.x === x && tile.z === z);
         }
         
         function updateCharacterAnimations() {
@@ -2425,6 +2407,57 @@
         
         // Ensure smooth loading
         document.body.style.opacity = '1';
+
+        // Function to load level data from a CFG file
+        async function loadLevelData(levelFileName) {
+            try {
+                const response = await fetch(`scripts/levels/${levelFileName}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const text = await response.text();
+                
+                const data = parseCfg(text);
+                console.log(`✅ Loaded level data from ${levelFileName}:`, data);
+                return data;
+            } catch (error) {
+                console.error(`❌ Failed to load level data from ${levelFileName}:`, error);
+                return {}; // Return empty data on error
+            }
+        }
+
+        // Function to parse the CFG file content
+        function parseCfg(cfgText) {
+            const lines = cfgText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const parsedData = {
+                trees: [],
+                rocks: [],
+                water: [],
+                box: null,
+                torch: null
+            };
+            let currentSection = '';
+
+            lines.forEach(line => {
+                if (line.endsWith(':')) {
+                    currentSection = line.slice(0, -1);
+                } else if (currentSection) {
+                    const parts = line.split(',').map(Number);
+                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        const gridPos = { x: parts[0], z: parts[1] };
+                        if (currentSection === 'box') {
+                            parsedData.box = gridPos;
+                        } else if (currentSection === 'torch') {
+                            parsedData.torch = gridPos;
+                        }
+                         else if (parsedData[currentSection]) {
+                            parsedData[currentSection].push(gridPos);
+                        }
+                    }
+                }
+            });
+            return parsedData;
+        }
     </script>
 </body>
 </html>
