@@ -23,7 +23,7 @@ They head to a cursed island where a legend says they can break its curses.
 	Can be used to push floor buttons.  
 	Can fill holes.
 
-* **Barrel:** Can be pushed, but it only stops when it crashes with another object / wall. When it crashes it leaves its leftovers on the floor
+* **Barrel:** Can be pushed, but it only stops when it crashes with another object / wall. When it crashes it leaves its leftovers on the floor. Leftovers on the floor cannot be passed through by the player or enemies.
 
 	Can fill holes.
 
@@ -49,6 +49,10 @@ Can be destroyed with Cannon and barrel. Can be pushed to holes.
 **Boss:**    
 	Captain of the ship and his kraken pet.
 
+There are three phases in which crates, barrels, and other objects will fall onto the stage. At the same time, several of the Kraken pet's tentacles will emerge from the ground.
+
+The player must get rid of the tentacles by hitting them with barrels, in order to then be able to shoot the pirate king with the cannon.
+
 **Level design**
 
 1. Introduction to the game.  
@@ -62,16 +66,16 @@ Can be destroyed with Cannon and barrel. Can be pushed to holes.
 9. Buttons, barrels and boxes  
 10. **Teaching level with cannon, cannonball and Metal bars.**  
 11. Test level with Cannon, cannonball, boxes and pirates.  
-12. Free level  
-13. Free level  
-14. Free level  
+12. Free level
+13. Free level
+14. Free level
 15. **Boss level**
 
 Assets that will be required:
 
 * Main character  
 * The Box  
-* Canon  
+* Cannon
 * Cannonball  
 * Wood Box  
 * Wood Chair  

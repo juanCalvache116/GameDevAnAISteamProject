@@ -1,0 +1,84 @@
+{
+  "name": "drowned-heart",
+  "version": "1.0.0",
+  "description": "A cursed tale of love and betrayal - A grid-based puzzle adventure game",
+  "main": "main.js",
+  "author": "Drowned Heart Development Team",
+  "license": "MIT",
+  "homepage": "./",
+  "keywords": [
+    "game",
+    "puzzle",
+    "adventure",
+    "pirate",
+    "three.js",
+    "electron"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "dist": "electron-builder --publish=never",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^27.1.3",
+    "electron-builder": "^24.6.4",
+    "electron-reload": "^2.0.0-alpha.1"
+  },
+  "dependencies": {},
+  "build": {
+    "appId": "com.drownedheartdev.drowned-heart",
+    "productName": "Drowned Heart",
+    "copyright": "Copyright © 2024 Drowned Heart Development Team",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png",
+      "category": "Game"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Drowned Heart"
+    },
+    "dmg": {
+      "title": "Drowned Heart",
+      "backgroundColor": "#0a1428"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "your-username",
+      "repo": "drowned-heart"
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

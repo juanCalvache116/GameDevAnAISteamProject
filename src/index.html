@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none';">
     <title>Drowned Heart - A Cursed Tale of Love and Betrayal</title>
     <style>
         * {
@@ -106,6 +107,18 @@
         @keyframes promptPulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
+        }
+        
+        @keyframes subtleShimmer {
+            0% { 
+                filter: brightness(1.0) hue-rotate(0deg);
+            }
+            50% { 
+                filter: brightness(1.1) hue-rotate(5deg);
+            }
+            100% { 
+                filter: brightness(1.05) hue-rotate(-3deg);
+            }
         }
         
         /* Main Menu - initially hidden */
@@ -555,6 +568,36 @@
             transform: translateY(-2px);
         }
         
+        /* Notification system for menu bar toggle */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #87CEEB;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 2px solid #4682B4;
+            font-family: 'Georgia', serif;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+        }
+        
         /* Responsive adjustments */
         @media (max-height: 700px) {
             .main-logo {
@@ -704,17 +747,75 @@
         let volume = 0.5;
         let splashMode = true;
         
+        // Performance settings
+        const ENABLE_SHADER = true; // Set to false to disable shader for better performance
+        const SHADER_QUALITY = 'medium'; // 'low', 'medium', 'high'
+        
         // WebGL Shader Setup
         let canvas, gl, program, startTime;
         
         function initShader() {
-            canvas = document.getElementById('shaderCanvas');
-            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
-            if (!gl) {
-                console.log('WebGL not supported, falling back to solid background');
+            if (!ENABLE_SHADER) {
+                console.log('🎨 Shader disabled for performance - using solid background');
+                createFallbackBackground();
                 return;
             }
+            
+                         canvas = document.getElementById('shaderCanvas');
+             
+             // Optimized WebGL context creation with performance hints
+             const contextAttributes = {
+                 antialias: false, // Disable for better performance
+                 alpha: false, // Opaque canvas for better performance
+                 depth: true, // Keep depth buffer for 3D
+                 stencil: false, // Disable stencil buffer for performance
+                 preserveDrawingBuffer: false, // Better performance
+                 desynchronized: true, // Reduce latency
+                 powerPreference: 'high-performance', // Request high-performance GPU
+                 failIfMajorPerformanceCaveat: false // Don't fail on performance warnings
+             };
+             
+             gl = canvas.getContext('webgl2', contextAttributes) || 
+                  canvas.getContext('webgl', contextAttributes) || 
+                  canvas.getContext('experimental-webgl', contextAttributes);
+            
+                         if (!gl) {
+                 console.log('❌ WebGL not supported, falling back to CSS background');
+                 createFallbackBackground();
+                 return;
+             }
+             
+             // WebGL renderer diagnostics
+             const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+             if (debugInfo) {
+                 const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                 const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                 
+                 console.log('🖥️  WebGL Renderer:', renderer);
+                 console.log('🏢 WebGL Vendor:', vendor);
+                 
+                 // Check for software rendering
+                 if (renderer.includes('SwiftShader') || renderer.includes('llvmpipe') || 
+                     renderer.includes('ANGLE (Software)')) {
+                     console.warn('⚠️  SOFTWARE RENDERING DETECTED! Performance will be poor.');
+                     console.warn('   → Try updating GPU drivers or enabling hardware acceleration');
+                 } else {
+                     console.log('✅ Hardware acceleration active');
+                 }
+             }
+             
+             // WebGL capabilities diagnostics
+             const capabilities = {
+                 maxTextures: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+                 maxTextureUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS),
+                 maxVaryingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS),
+                 maxVertexAttribs: gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
+                 maxViewportDims: gl.getParameter(gl.MAX_VIEWPORT_DIMS)
+             };
+             console.log('🎮 WebGL Capabilities:');
+             console.table(capabilities);
+             
+             console.log('✅ WebGL shader initialized successfully');
             
             // Vertex shader
             const vertexShaderSource = `
@@ -724,43 +825,70 @@
                 }
             `;
             
-            // Fragment shader (converted from Shadertoy)
+            // Lightweight underwater effect shader (replaces heavy Worley noise)
             const fragmentShaderSource = `
-                precision highp float;
+                precision mediump float;
                 uniform vec2 u_resolution;
                 uniform float u_time;
                 
-                float length2(vec2 p){
-                    return dot(p,p);
+                // Simple noise function
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
                 }
                 
-                float noise(vec2 p){
-                    return fract(sin(fract(sin(p.x) * (43.13311)) + p.y) * 31.0011);
+                // Smooth noise
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    f = f * f * (3.0 - 2.0 * f);
+                    
+                    float a = hash(i);
+                    float b = hash(i + vec2(1.0, 0.0));
+                    float c = hash(i + vec2(0.0, 1.0));
+                    float d = hash(i + vec2(1.0, 1.0));
+                    
+                    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
                 }
                 
-                float worley(vec2 p) {
-                    float d = 1e30;
-                    for (int xo = -1; xo <= 1; ++xo) {
-                        for (int yo = -1; yo <= 1; ++yo) {
-                            vec2 tp = floor(p) + vec2(float(xo), float(yo));
-                            d = min(d, length2(p - tp - noise(tp)));
-                        }
+                // Fractal noise for water effect
+                float fbm(vec2 p) {
+                    float value = 0.0;
+                    float freq = 1.0;
+                    float amp = 0.5;
+                    
+                    for(int i = 0; i < 3; i++) {
+                        value += amp * noise(p * freq);
+                        freq *= 2.0;
+                        amp *= 0.5;
                     }
-                    return 3.0*exp(-4.0*abs(2.5*d - 1.0));
-                }
-                
-                float fworley(vec2 p) {
-                    return sqrt(sqrt(sqrt(
-                        worley(p*5.0 + 0.05*u_time) *
-                        sqrt(worley(p * 50.0 + 0.12 + -0.1*u_time)) *
-                        sqrt(sqrt(worley(p * -10.0 + 0.03*u_time))))));
+                    return value;
                 }
                 
                 void main() {
                     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-                    float t = fworley(uv * u_resolution.xy / 1500.0);
-                    t *= exp(-length2(abs(0.7*uv - 1.0)));
-                    gl_FragColor = vec4(t * vec3(0.1, 1.1*t, pow(t, 0.5-t)), 1.0);
+                    
+                    // Create moving water effect
+                    vec2 p = uv * 3.0 + u_time * 0.1;
+                    float n1 = fbm(p + vec2(u_time * 0.05, 0.0));
+                    float n2 = fbm(p + vec2(0.0, u_time * 0.08));
+                    
+                    // Combine noise for caustics effect
+                    float caustics = n1 + n2 * 0.5;
+                    caustics = smoothstep(0.3, 1.0, caustics);
+                    
+                    // Create underwater color gradient
+                    vec3 deepBlue = vec3(0.05, 0.15, 0.3);
+                    vec3 lightBlue = vec3(0.1, 0.4, 0.6);
+                    
+                    // Distance from center for vignette
+                    float dist = length(uv - 0.5);
+                    float vignette = 1.0 - smoothstep(0.3, 0.8, dist);
+                    
+                    // Final color
+                    vec3 color = mix(deepBlue, lightBlue, caustics * vignette);
+                    color += caustics * 0.3 * vignette;
+                    
+                    gl_FragColor = vec4(color, 0.8);
                 }
             `;
             
@@ -838,11 +966,32 @@
             
             requestAnimationFrame(animateShader);
         }
+        
+        // Fallback background for when WebGL is disabled or unavailable
+        function createFallbackBackground() {
+            const canvas = document.getElementById('shaderCanvas');
+            if (canvas) {
+                // Replace canvas with CSS gradient background
+                canvas.style.background = `
+                    radial-gradient(ellipse at center, 
+                        rgba(16, 64, 112, 0.8) 0%, 
+                        rgba(8, 32, 64, 0.9) 50%, 
+                        rgba(4, 16, 32, 0.95) 100%),
+                    linear-gradient(45deg, 
+                        rgba(10, 20, 40, 0.8) 0%, 
+                        rgba(5, 30, 60, 0.8) 100%)
+                `;
+                canvas.style.backgroundSize = '100% 100%, 100% 100%';
+                
+                // Add subtle CSS animation
+                canvas.style.animation = 'subtleShimmer 8s ease-in-out infinite alternate';
+            }
+        }
 
         // Initialize when page loads
         window.addEventListener('load', function() {
-            // Initialize the underwater shader
-            initShader();
+            // Don't initialize shader immediately to reduce initial lag
+            // Shader will be initialized when transitioning to menu
             
             // Handle window resize
             window.addEventListener('resize', resizeCanvas);
@@ -851,10 +1000,17 @@
             menuMusic.volume = volume;
         });
         
-        // Splash screen transition
+        // Performance monitoring for smooth transitions
+        function logPerformance(label) {
+            if (performance && performance.now) {
+                console.log(`⚡ ${label}: ${performance.now().toFixed(2)}ms`);
+            }
+        }
+        
+        // Optimized splash screen transition
         function transitionToMainMenu() {
             if (!splashMode) return;
-            console.log('Starting transition to main menu');
+            logPerformance('Transition started');
             
             splashMode = false;
             gameState = 'menu';
@@ -862,36 +1018,49 @@
             const mainMenu = document.getElementById('mainMenu');
             const shaderCanvas = document.getElementById('shaderCanvas');
             
-            // Start the fade out
-            splashScreen.classList.add('fade-out');
-            
-            // Show shader background immediately
-            shaderCanvas.classList.add('show');
-            
-            // Try to start music immediately (user just interacted)
-            menuMusic.volume = volume;
-            console.log('Attempting to start music...');
-            menuMusic.play().then(() => {
-                console.log('Music started successfully');
-            }).catch(function(error) {
-                console.log('Audio autoplay prevented:', error);
-                setTimeout(() => {
-                    console.log('Trying music again...');
-                    menuMusic.play().catch(e => console.log('Second music attempt failed:', e));
-                }, 1000);
+            // Start the fade out immediately for smooth transition
+            requestAnimationFrame(() => {
+                splashScreen.classList.add('fade-out');
             });
             
-            // Show main menu after a delay
+            // Start music asynchronously to avoid blocking
             setTimeout(() => {
-                console.log('Showing main menu');
-                mainMenu.classList.add('show');
-            }, 800);
+                menuMusic.volume = volume;
+                menuMusic.play().catch(() => {
+                    // Retry once after a short delay if needed
+                    setTimeout(() => menuMusic.play().catch(() => {}), 500);
+                });
+            }, 100);
             
-            // Remove splash screen from DOM after transition
+            // Initialize and activate background with optimal timing
             setTimeout(() => {
-                console.log('Removing splash screen');
-                splashScreen.remove();
-            }, 2000);
+                logPerformance('Background initialization started');
+                // Initialize shader or fallback if not already done
+                if (!gl && ENABLE_SHADER) {
+                    initShader();
+                } else if (!ENABLE_SHADER) {
+                    createFallbackBackground();
+                }
+                requestAnimationFrame(() => {
+                    shaderCanvas.classList.add('show');
+                    logPerformance('Background visible');
+                });
+            }, 300);
+            
+            // Show main menu with smooth timing
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    mainMenu.classList.add('show');
+                    logPerformance('Menu visible');
+                });
+            }, 600);
+            
+            // Clean up splash screen after transition completes
+            setTimeout(() => {
+                if (splashScreen && splashScreen.parentNode) {
+                    splashScreen.remove();
+                }
+            }, 1800);
         }
         
         // Modal functions
@@ -984,6 +1153,12 @@
         // ==========================================
         
         document.addEventListener('keydown', function(event) {
+            // Handle F1 key for menu bar toggle (globally)
+            if (event.code === 'F1') {
+                event.preventDefault(); // Prevent browser's default F1 behavior
+                return; // Let Electron main process handle the actual toggle
+            }
+            
             if (gameState === 'splash') {
                 // Any key during splash transitions to main menu
                 transitionToMainMenu();
@@ -1096,12 +1271,40 @@
             }
         }
         
-        // Initialize the game
-        function initializeGame() {
-            console.log('Initializing Three.js game...');
-            
-            // Initialize grid system
-            initGridMap();
+                     // Initialize the game
+             function initializeGame() {
+                 console.log('Initializing Three.js game...');
+                 
+                 // WebGL capability checks before proceeding
+                 const testCanvas = document.createElement('canvas');
+                 const testGL = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl');
+                 
+                 if (testGL) {
+                     // Log WebGL capabilities for debugging
+                     const caps = {
+                         maxTexSize: testGL.getParameter(testGL.MAX_TEXTURE_SIZE),
+                         maxTexUnits: testGL.getParameter(testGL.MAX_TEXTURE_IMAGE_UNITS),
+                         maxVaryings: testGL.getParameter(testGL.MAX_VARYING_VECTORS) || testGL.getParameter(testGL.MAX_VARYING_COMPONENTS),
+                         maxVertAttribs: testGL.getParameter(testGL.MAX_VERTEX_ATTRIBS),
+                         webgl2: !!testCanvas.getContext('webgl2')
+                     };
+                     
+                     console.log('🎮 Three.js WebGL Capabilities:');
+                     console.table(caps);
+                     
+                     if (caps.maxTexSize < 1024) {
+                         console.warn('⚠️  Very low texture size limit detected:', caps.maxTexSize);
+                     }
+                     
+                     if (caps.webgl2) {
+                         console.log('✅ WebGL 2.0 support detected');
+                     } else {
+                         console.log('ℹ️  Using WebGL 1.0 (WebGL 2.0 not available)');
+                     }
+                 }
+                 
+                 // Initialize grid system
+                 initGridMap();
             
             // Create scene
             scene = new THREE.Scene();
@@ -1120,15 +1323,31 @@
             camera.position.set(0, 15, 8);
             camera.lookAt(0, 0, 0);
             
-            // Create renderer
+            // Create optimized renderer with performance hints
             const canvas = document.getElementById('gameCanvas');
             renderer = new THREE.WebGLRenderer({ 
                 canvas: canvas,
-                antialias: true 
+                antialias: false, // Disable for better performance - use post-processing if needed
+                alpha: false, // Opaque canvas for better performance
+                depth: true, // Keep depth buffer for 3D rendering
+                stencil: false, // Disable stencil buffer for performance
+                preserveDrawingBuffer: false, // Better performance 
+                powerPreference: 'high-performance', // Request high-performance GPU
+                failIfMajorPerformanceCaveat: false // Don't fail on performance warnings
             });
+            
+            // Set pixel ratio based on device, but cap it for performance
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+            renderer.setPixelRatio(pixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Configure shadows with performance in mind
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Good balance of quality/performance
+            
+            // Additional performance optimizations
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.LinearToneMapping;
             
             setupLighting();
             createWorld();
@@ -1837,10 +2056,69 @@
             }
         }
         
-        function animate() {
-            if (gameState !== 'game') return;
-            
-            requestAnimationFrame(animate);
+                 // ==========================================
+         // PERFORMANCE MONITORING
+         // ==========================================
+         
+         // Frame rate monitoring (from the guide)
+         let perfLast = performance.now();
+         let perfAcc = 0;
+         let perfFrames = 0;
+         let fpsDisplay = null;
+         
+         // Create FPS display element
+         function createFPSDisplay() {
+             if (!fpsDisplay) {
+                 fpsDisplay = document.createElement('div');
+                 fpsDisplay.style.cssText = `
+                     position: fixed;
+                     top: 10px;
+                     left: 10px;
+                     background: rgba(0,0,0,0.8);
+                     color: #00ff00;
+                     padding: 5px 10px;
+                     font-family: monospace;
+                     font-size: 14px;
+                     border-radius: 4px;
+                     z-index: 10000;
+                     pointer-events: none;
+                 `;
+                 document.body.appendChild(fpsDisplay);
+             }
+         }
+         
+         // Update FPS counter every second
+         setInterval(() => {
+             if (gameState === 'game' && perfFrames > 0) {
+                 const fps = Math.round(perfFrames * 1000 / perfAcc);
+                 console.log(`🎯 Game FPS: ${fps}`);
+                 
+                 if (fpsDisplay) {
+                     fpsDisplay.textContent = `FPS: ${fps}`;
+                     fpsDisplay.style.color = fps >= 50 ? '#00ff00' : fps >= 30 ? '#ffaa00' : '#ff0000';
+                 }
+             }
+             perfFrames = 0;
+             perfAcc = 0;
+         }, 1000);
+
+         function animate() {
+             if (gameState !== 'game') return;
+             
+             // Performance tracking
+             const now = performance.now();
+             const dt = now - perfLast;
+             perfLast = now;
+             perfAcc += dt;
+             perfFrames++;
+             
+             // Show FPS display in development mode or if performance monitoring is needed
+             const isDevMode = window.location.protocol === 'file:' || window.location.hostname === 'localhost';
+             if ((isDevMode || perfFrames % 60 === 0) && !fpsDisplay) {
+                 createFPSDisplay();
+             }
+             
+             requestAnimationFrame(animate);
             
             updateMovementAnimation();
             updateCharacterAnimations();
@@ -1873,20 +2151,89 @@
             renderer.render(scene, camera);
         }
         
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (gameInitialized) {
-                const aspect = window.innerWidth / window.innerHeight;
-                const frustumSize = 20;
-                camera.left = frustumSize * aspect / -2;
-                camera.right = frustumSize * aspect / 2;
-                camera.top = frustumSize / 2;
-                camera.bottom = frustumSize / -2;
-                camera.updateProjectionMatrix();
-                
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                 // Optimized canvas resize with device pixel ratio handling
+         function resizeCanvas() {
+             if (!gameInitialized || !renderer || !camera) return;
+             
+             const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap pixel ratio for performance
+             const width = Math.floor(window.innerWidth * dpr);
+             const height = Math.floor(window.innerHeight * dpr);
+             
+             // Only resize if dimensions actually changed
+             const canvas = renderer.domElement;
+             if (canvas.width !== width || canvas.height !== height) {
+                 // Update camera aspect ratio
+                 const aspect = window.innerWidth / window.innerHeight;
+                 const frustumSize = 20;
+                 camera.left = frustumSize * aspect / -2;
+                 camera.right = frustumSize * aspect / 2;
+                 camera.top = frustumSize / 2;
+                 camera.bottom = frustumSize / -2;
+                 camera.updateProjectionMatrix();
+                 
+                 // Update renderer size
+                 renderer.setSize(window.innerWidth, window.innerHeight);
+                 renderer.setPixelRatio(dpr);
+                 
+                 console.log(`🖼️  Canvas resized: ${window.innerWidth}x${window.innerHeight} (${dpr}x DPR)`);
+             }
+         }
+
+         // Handle window resize with debouncing
+         let resizeTimeout;
+         window.addEventListener('resize', () => {
+             clearTimeout(resizeTimeout);
+             resizeTimeout = setTimeout(resizeCanvas, 16); // ~60fps debouncing
+         });
+        
+        // ==========================================
+        // NOTIFICATION SYSTEM
+        // ==========================================
+        
+        function showNotification(message, duration = 3000) {
+            // Remove existing notification if present
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
             }
-        });
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            // Add to document
+            document.body.appendChild(notification);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                notification.classList.add('show');
+            });
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, duration);
+        }
+        
+        // ==========================================
+        // ELECTRON API INTEGRATION
+        // ==========================================
+        
+        // Listen for menu bar toggle events from Electron main process
+        if (window.electronAPI) {
+            window.electronAPI.onMenuBarToggled((event, data) => {
+                console.log('🔧 Menu bar toggled:', data.message);
+                showNotification(`🔧 ${data.message}`);
+            });
+        }
         
         // Ensure smooth loading
         document.body.style.opacity = '1';

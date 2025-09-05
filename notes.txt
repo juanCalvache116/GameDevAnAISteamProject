@@ -1,0 +1,6 @@
+F1 for toggling menu OPTIONS
+Developer level that is launch-able using toolbar options
+Need to have a dedicated level design system, likely cfg files (or custom .lvl)
+Need to have a dedicated items design system
+Need to have a dedicated NPC design system
+Need to have a standalone AI system for each NPC
