@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "name": "Tutorial Island",
+    "description": "A simple tutorial level to learn the basics of essence manipulation",
+    "author": "GameDev Team",
+    "version": "1.0",
+    "difficulty": "tutorial"
+  },
+
+  "world": {
+    "spawn": { "x": 0, "z": 0 },
+    "camera_start": { "x": 0, "z": 8 },
+    "bounds": {
+      "min": { "x": -10, "z": -10 },
+      "max": { "x": 10, "z": 10 }
+    }
+  },
+
+  "terrain": {
+    "trees": [
+      { "pos": [-3, 3], "variant": "palm", "size": "medium" },
+      { "pos": [3, -3], "variant": "oak", "size": "large" },
+      { "pos": [-5, -5], "variant": "pine", "size": "tall" },
+      { "pos": [5, 5], "variant": "dead_tree", "size": "medium" }
+    ],
+
+    "rocks": [
+      { "pos": [-2, 0], "type": "boulder", "size": "small", "material": "granite" },
+      { "pos": [2, 0], "type": "rock_pile", "size": "medium", "material": "sandstone" }
+    ],
+
+    "water": {
+      "areas": [
+        {
+          "name": "crystal_spring",
+          "type": "spring",
+          "description": "A small crystal-clear spring that bubbles mysteriously",
+          "properties": {
+            "depth": "shallow",
+            "clarity": "crystal_clear",
+            "temperature": "warm"
+          },
+          "tiles": [
+            [0, 3], [1, 3], [0, 4], [1, 4]
+          ]
+        }
+      ]
+    }
+  },
+
+  "items": {
+    "containers": [
+      {
+        "type": "essence_box",
+        "pos": [0, -2],
+        "properties": {
+          "pushable": true,
+          "essence": null,
+          "material": "cursed_wood",
+          "durability": 100
+        },
+        "description": "A tutorial box that glows with mysterious energy"
+      }
+    ],
+
+    "light_sources": [
+      {
+        "type": "torch",
+        "pos": [-1, -4],
+        "properties": {
+          "essence": "fire",
+          "lit": true,
+          "fuel": 100,
+          "brightness": 0.9,
+          "color": "#ff6600"
+        },
+        "description": "A bright tutorial torch burning with orange flames"
+      }
+    ]
+  },
+
+  "zones": [
+    {
+      "name": "tutorial_area",
+      "type": "safe_zone",
+      "bounds": {
+        "center": [0, 0],
+        "radius": 8
+      },
+      "properties": {
+        "no_enemies": true,
+        "tutorial_hints": true
+      }
+    }
+  ],
+
+  "events": [
+    {
+      "name": "welcome_message",
+      "trigger": "game_start",
+      "action": {
+        "type": "show_message",
+        "message": "Welcome to Tutorial Island! Use WASD to move around."
+      }
+    },
+    {
+      "name": "essence_tutorial",
+      "trigger": "player_near_torch",
+      "condition": {
+        "player_essence": null,
+        "distance_to": [-1, -4],
+        "max_distance": 2
+      },
+      "action": {
+        "type": "show_hint",
+        "message": "Press E to absorb the torch's fire essence!"
+      }
+    }
+  ],
+
+  "audio": {
+    "ambient": [
+      {
+        "name": "peaceful_birds",
+        "file": "tutorial_ambience.mp3",
+        "volume": 0.4,
+        "loop": true
+      }
+    ],
+    "music": {
+      "exploration": "tutorial_music.mp3",
+      "volume": 0.3
+    }
+  }
+}

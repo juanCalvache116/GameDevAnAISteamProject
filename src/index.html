@@ -1638,186 +1638,380 @@
             }
         }
         
-        function createTrees() {
-            // Iterate over loaded tree positions
-            if (levelData.trees) {
-                levelData.trees.forEach(gridPos => {
-                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                        
-                        // Tree trunk
-                        const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2);
-                        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-                        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-                        trunk.position.set(worldPos.x, 1, worldPos.z);
-                        trunk.castShadow = true;
-                        world.add(trunk);
-                        
-                        // Tree leaves
-                        const leavesGeometry = new THREE.SphereGeometry(1.0);
-                        const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
-                        const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-                        leaves.position.set(worldPos.x, 2.5, worldPos.z);
-                        leaves.castShadow = true;
-                        world.add(leaves);
-                        
-                        setGridOccupied(gridPos.x, gridPos.z, true);
-                    }
-                });
-            }
-        }
+                 function createTrees() {
+             // Iterate over loaded tree positions
+             if (levelData.terrain && levelData.terrain.trees) {
+                 levelData.terrain.trees.forEach(tree => {
+                     const [x, z] = tree.pos;
+                     if (isValidGridPosition(x, z)) {
+                         const worldPos = gridToWorld(x, z);
+                         
+                         // Get tree properties
+                         const variant = tree.variant || 'oak';
+                         const size = tree.size || 'medium';
+                         
+                         // Tree trunk - vary size based on tree size
+                         const sizeMultipliers = {
+                             small: 0.7, medium: 1.0, large: 1.3, tall: 1.0, huge: 1.6, ancient: 2.0
+                         };
+                         const heightMultipliers = {
+                             small: 0.8, medium: 1.0, large: 1.2, tall: 1.5, huge: 1.4, ancient: 1.8
+                         };
+                         
+                         const sizeMultiplier = sizeMultipliers[size] || 1.0;
+                         const heightMultiplier = heightMultipliers[size] || 1.0;
+                         
+                         const trunkGeometry = new THREE.CylinderGeometry(
+                             0.3 * sizeMultiplier, 
+                             0.4 * sizeMultiplier, 
+                             2 * heightMultiplier
+                         );
+                         
+                         // Tree colors based on variant
+                         const trunkColors = {
+                             oak: 0x8B4513, palm: 0xD2691E, pine: 0x654321, 
+                             dead_tree: 0x696969, ancient_tree: 0x2F4F4F
+                         };
+                         const leafColors = {
+                             oak: 0x228B22, palm: 0x32CD32, pine: 0x006400,
+                             dead_tree: 0x8B4513, ancient_tree: 0x556B2F
+                         };
+                         
+                         const trunkMaterial = new THREE.MeshLambertMaterial({ 
+                             color: trunkColors[variant] || 0x8B4513 
+                         });
+                         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                         trunk.position.set(worldPos.x, 1 * heightMultiplier, worldPos.z);
+                         trunk.castShadow = true;
+                         world.add(trunk);
+                         
+                         // Tree leaves (don't add for dead trees)
+                         if (variant !== 'dead_tree') {
+                             const leavesGeometry = new THREE.SphereGeometry(1.0 * sizeMultiplier);
+                             const leavesMaterial = new THREE.MeshLambertMaterial({ 
+                                 color: leafColors[variant] || 0x228B22 
+                             });
+                             const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                             leaves.position.set(worldPos.x, 2.5 * heightMultiplier, worldPos.z);
+                             leaves.castShadow = true;
+                             world.add(leaves);
+                         }
+                         
+                         setGridOccupied(x, z, true);
+                     }
+                 });
+             }
+         }
         
-        function createRocks() {
-            // Iterate over loaded rock positions
-            if (levelData.rocks) {
-                levelData.rocks.forEach(gridPos => {
-                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                        
-                        const rockGeometry = new THREE.DodecahedronGeometry(0.6);
-                        const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 });
-                        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-                        rock.position.set(worldPos.x, 0.3, worldPos.z);
-                        rock.castShadow = true;
-                        rock.receiveShadow = true;
-                        world.add(rock);
-                        
-                        setGridOccupied(gridPos.x, gridPos.z, true);
-                    }
-                });
-            }
-        }
+                 function createRocks() {
+             // Iterate over loaded rock positions
+             if (levelData.terrain && levelData.terrain.rocks) {
+                 levelData.terrain.rocks.forEach(rock => {
+                     const [x, z] = rock.pos;
+                     if (isValidGridPosition(x, z)) {
+                         const worldPos = gridToWorld(x, z);
+                         
+                         // Get rock properties
+                         const type = rock.type || 'boulder';
+                         const size = rock.size || 'medium';
+                         const material = rock.material || 'granite';
+                         
+                         // Rock size multipliers
+                         const sizeMultipliers = {
+                             small: 0.4, medium: 0.6, large: 0.9, huge: 1.3
+                         };
+                         const sizeMultiplier = sizeMultipliers[size] || 0.6;
+                         
+                         // Rock materials (colors)
+                         const materialColors = {
+                             granite: 0x696969, limestone: 0xF5F5DC, sandstone: 0xF4A460,
+                             volcanic: 0x2F4F4F, ancient_stone: 0x708090
+                         };
+                         
+                         // Rock types (geometries)
+                         let geometry;
+                         switch(type) {
+                             case 'boulder':
+                                 geometry = new THREE.DodecahedronGeometry(sizeMultiplier);
+                                 break;
+                             case 'rock_pile':
+                                 geometry = new THREE.BoxGeometry(
+                                     sizeMultiplier * 1.5, 
+                                     sizeMultiplier * 0.8, 
+                                     sizeMultiplier * 1.2
+                                 );
+                                 break;
+                             case 'rock_formation':
+                                 geometry = new THREE.ConeGeometry(
+                                     sizeMultiplier * 0.8, 
+                                     sizeMultiplier * 2, 
+                                     8
+                                 );
+                                 break;
+                             default:
+                                 geometry = new THREE.DodecahedronGeometry(sizeMultiplier);
+                         }
+                         
+                         const rockMaterial = new THREE.MeshLambertMaterial({ 
+                             color: materialColors[material] || 0x696969 
+                         });
+                         const rockMesh = new THREE.Mesh(geometry, rockMaterial);
+                         
+                         // Position rocks slightly above ground
+                         const heightOffset = type === 'rock_formation' ? sizeMultiplier : sizeMultiplier * 0.5;
+                         rockMesh.position.set(worldPos.x, heightOffset, worldPos.z);
+                         rockMesh.castShadow = true;
+                         rockMesh.receiveShadow = true;
+                         
+                         // Add slight random rotation for variety
+                         rockMesh.rotation.y = Math.random() * Math.PI * 2;
+                         
+                         world.add(rockMesh);
+                         setGridOccupied(x, z, true);
+                     }
+                 });
+             }
+         }
         
-        function createWater() {
-            // Iterate over loaded water tile positions
-            if (levelData.water) {
-                levelData.water.forEach(gridPos => {
-                    if (isValidGridPosition(gridPos.x, gridPos.z)) {
-                        const worldPos = gridToWorld(gridPos.x, gridPos.z);
-                        
-                        const waterGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
-                        const waterMaterial = new THREE.MeshLambertMaterial({
-                            color: 0x1E90FF,
-                            transparent: true,
-                            opacity: 0.8
-                        });
-                        const water = new THREE.Mesh(waterGeometry, waterMaterial);
-                        water.rotation.x = -Math.PI / 2;
-                        water.position.set(worldPos.x, 0.02, worldPos.z);
-                        world.add(water);
-                        
-                        setGridOccupied(gridPos.x, gridPos.z, true);
-                    }
-                });
-            }
-        }
+                 function createWater() {
+             // Iterate over loaded water areas
+             if (levelData.terrain && levelData.terrain.water && levelData.terrain.water.areas) {
+                 levelData.terrain.water.areas.forEach(area => {
+                     const waterType = area.type || 'pond';
+                     const properties = area.properties || {};
+                     
+                     // Water appearance based on properties
+                     let waterColor = 0x1E90FF; // default blue
+                     let opacity = 0.8;
+                     
+                     if (properties.clarity === 'murky') {
+                         waterColor = 0x4682B4; // darker blue
+                         opacity = 0.9;
+                     }
+                     if (properties.depth === 'deep') {
+                         waterColor = 0x000080; // navy blue
+                         opacity = 0.95;
+                     }
+                     if (properties.temperature === 'cold') {
+                         waterColor = 0x87CEEB; // sky blue
+                     }
+                     
+                     // Create water tiles
+                     area.tiles.forEach(tile => {
+                         const [x, z] = tile;
+                         if (isValidGridPosition(x, z)) {
+                             const worldPos = gridToWorld(x, z);
+                             
+                             const waterGeometry = new THREE.PlaneGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
+                             const waterMaterial = new THREE.MeshLambertMaterial({
+                                 color: waterColor,
+                                 transparent: true,
+                                 opacity: opacity
+                             });
+                             const water = new THREE.Mesh(waterGeometry, waterMaterial);
+                             water.rotation.x = -Math.PI / 2;
+                             water.position.set(worldPos.x, 0.02, worldPos.z);
+                             
+                             // Add a slight random Y variation for more natural look
+                             water.position.y += (Math.random() - 0.5) * 0.01;
+                             
+                             world.add(water);
+                             setGridOccupied(x, z, true);
+                         }
+                     });
+                     
+                     console.log(`🌊 Created ${area.name || waterType}: ${area.description || 'Water area'}`);
+                 });
+             }
+         }
         
-        function createPushableBox() {
-            if (!levelData.box) return;
+                 function createPushableBox() {
+             if (!levelData.items || !levelData.items.containers || levelData.items.containers.length === 0) return;
 
-            boxGridPos = { ...levelData.box }; // Initialize boxGridPos from levelData
-            const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
+             const boxData = levelData.items.containers[0]; // Get first container
+             const [x, z] = boxData.pos;
+             boxGridPos = { x, z }; // Initialize boxGridPos from levelData
+             const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
+             
+             const properties = boxData.properties || {};
+             const material = properties.material || 'wood';
+             
+             // Box materials and colors
+             const materialColors = {
+                 wood: 0x8B4513,
+                 cursed_wood: 0x5D4E37,
+                 metal: 0x708090,
+                 stone: 0x696969
+             };
+             
+             const boxGeometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+             const boxMaterial = new THREE.MeshLambertMaterial({
+                 color: materialColors[material] || 0x8B4513,
+                 transparent: true,
+                 opacity: 0.9
+             });
+             pushableBox = new THREE.Mesh(boxGeometry, boxMaterial);
+             pushableBox.position.set(boxWorldPos.x, 0.9, boxWorldPos.z);
+             pushableBox.castShadow = true;
+             pushableBox.receiveShadow = true;
 
-            const boxGeometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
-            const boxMaterial = new THREE.MeshLambertMaterial({
-                color: 0x8B4513,
-                transparent: true,
-                opacity: 0.9
-            });
-            pushableBox = new THREE.Mesh(boxGeometry, boxMaterial);
-            pushableBox.position.set(boxWorldPos.x, 0.9, boxWorldPos.z);
-            pushableBox.castShadow = true;
-            pushableBox.receiveShadow = true;
+             // Add decorative elements based on material
+             if (material === 'cursed_wood') {
+                 // Add glowing edges for cursed wood
+                 const edgeMaterial = new THREE.MeshLambertMaterial({ 
+                     color: 0x4B0082,
+                     emissive: 0x2F004F
+                 });
+                 
+                 for (let i = 0; i < 8; i++) {
+                     const corner = new THREE.Mesh(
+                         new THREE.SphereGeometry(0.08),
+                         edgeMaterial
+                     );
+                     const cornerX = (i & 1) ? 0.8 : -0.8;
+                     const cornerY = (i & 2) ? 0.8 : -0.8;
+                     const cornerZ = (i & 4) ? 0.8 : -0.8;
+                     corner.position.set(cornerX, cornerY, cornerZ);
+                     pushableBox.add(corner);
+                 }
+             } else {
+                 // Regular material corners
+                 const edgeMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+                 
+                 for (let i = 0; i < 8; i++) {
+                     const corner = new THREE.Mesh(
+                         new THREE.SphereGeometry(0.08),
+                         edgeMaterial
+                     );
+                     const cornerX = (i & 1) ? 0.8 : -0.8;
+                     const cornerY = (i & 2) ? 0.8 : -0.8;
+                     const cornerZ = (i & 4) ? 0.8 : -0.8;
+                     corner.position.set(cornerX, cornerY, cornerZ);
+                     pushableBox.add(corner);
+                 }
+             }
 
-            const edgeMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-
-            for (let i = 0; i < 8; i++) {
-                const corner = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.08),
-                    edgeMaterial
-                );
-                const x = (i & 1) ? 0.8 : -0.8;
-                const y = (i & 2) ? 0.8 : -0.8;
-                const z = (i & 4) ? 0.8 : -0.8;
-                corner.position.set(x, y, z);
-                pushableBox.add(corner);
-            }
-
-            world.add(pushableBox);
-            setGridOccupied(boxGridPos.x, boxGridPos.z, true);
-        }
+             world.add(pushableBox);
+             setGridOccupied(boxGridPos.x, boxGridPos.z, true);
+             
+             console.log(`📦 Created ${boxData.type}: ${boxData.description || 'A mysterious box'}`);
+         }
         
-        function createTorch() {
-            if (!levelData.torch) return;
+                 function createTorch() {
+             if (!levelData.items || !levelData.items.light_sources || levelData.items.light_sources.length === 0) return;
 
-            const torchPos = { ...levelData.torch }; // Initialize torchPos from levelData
-            const torchWorldPos = gridToWorld(torchPos.x, torchPos.z);
+             const torchData = levelData.items.light_sources[0]; // Get first light source
+             const [x, z] = torchData.pos;
+             const torchPos = { x, z };
+             const torchWorldPos = gridToWorld(torchPos.x, torchPos.z);
+             
+             const properties = torchData.properties || {};
 
-            if (isValidGridPosition(torchPos.x, torchPos.z)) {
-                const baseGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5);
-                const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-                const torchBase = new THREE.Mesh(baseGeometry, baseMaterial);
-                torchBase.position.set(torchWorldPos.x, 0.75, torchWorldPos.z);
-                torchBase.castShadow = true;
-                world.add(torchBase);
+             if (isValidGridPosition(torchPos.x, torchPos.z)) {
+                 const baseGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5);
+                 const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                 const torchBase = new THREE.Mesh(baseGeometry, baseMaterial);
+                 torchBase.position.set(torchWorldPos.x, 0.75, torchWorldPos.z);
+                 torchBase.castShadow = true;
+                 world.add(torchBase);
 
-                const flameGeometry = new THREE.SphereGeometry(0.3, 8, 6);
-                const flameMaterial = new THREE.MeshLambertMaterial({
-                    color: 0xff4500,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const flame = new THREE.Mesh(flameGeometry, flameMaterial);
-                flame.position.set(torchWorldPos.x, 1.8, torchWorldPos.z);
-                flame.scale.y = 1.3;
-                world.add(flame);
+                 // Create flame if torch is lit
+                 let flame = null;
+                 if (properties.lit !== false) { // Default to lit
+                     const flameGeometry = new THREE.SphereGeometry(0.3, 8, 6);
+                     
+                     // Parse color from hex string or use default
+                     let flameColor = 0xff4500;
+                     if (properties.color) {
+                         const colorStr = properties.color.replace('#', '');
+                         flameColor = parseInt(colorStr, 16);
+                     }
+                     
+                     const flameMaterial = new THREE.MeshLambertMaterial({
+                         color: flameColor,
+                         transparent: true,
+                         opacity: properties.brightness || 0.8
+                     });
+                     flame = new THREE.Mesh(flameGeometry, flameMaterial);
+                     flame.position.set(torchWorldPos.x, 1.8, torchWorldPos.z);
+                     flame.scale.y = 1.3;
+                     
+                     // Add emissive glow if specified
+                     if (properties.essence === 'fire') {
+                         flameMaterial.emissive = new THREE.Color(flameColor);
+                         flameMaterial.emissiveIntensity = 0.2;
+                     }
+                     
+                     world.add(flame);
+                 }
 
-                interactionObjects.push({
-                    gridPos: torchPos,
-                    type: 'torch',
-                    essence: 'fire',
-                    mesh: torchBase,
-                    flame: flame,
-                    name: 'Torch'
-                });
+                 interactionObjects.push({
+                     gridPos: torchPos,
+                     type: torchData.type || 'torch',
+                     essence: properties.essence || 'fire',
+                     mesh: torchBase,
+                     flame: flame,
+                     name: torchData.type === 'torch' ? 'Ancient Torch' : 'Light Source',
+                     properties: properties
+                 });
 
-                setGridOccupied(torchPos.x, torchPos.z, true);
-            }
-        }
+                 setGridOccupied(torchPos.x, torchPos.z, true);
+                 
+                 console.log(`🔥 Created ${torchData.type}: ${torchData.description || 'A mysterious light source'}`);
+             }
+         }
         
-        function createCharacter() {
-            const characterGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.4);
-            const characterMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0xFF69B4
-            });
-            character = new THREE.Mesh(characterGeometry, characterMaterial);
-            
-            characterGridPos = { x: 0, z: 0 };
-            const worldPos = gridToWorld(characterGridPos.x, characterGridPos.z);
-            character.position.set(worldPos.x, 0.8, worldPos.z);
-            characterPosition.x = worldPos.x;
-            characterPosition.z = worldPos.z;
-            
-            character.castShadow = true;
-            scene.add(character);
-            
-            const faceGeometry = new THREE.SphereGeometry(0.15);
-            const faceMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDDAA });
-            const face = new THREE.Mesh(faceGeometry, faceMaterial);
-            face.position.set(0, 0.3, 0.25);
-            character.add(face);
-            
-            const eyeGeometry = new THREE.SphereGeometry(0.03);
-            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-            
-            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            leftEye.position.set(-0.05, 0.05, 0.1);
-            face.add(leftEye);
-            
-            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            rightEye.position.set(0.05, 0.05, 0.1);
-            face.add(rightEye);
-        }
+                 function createCharacter() {
+             const characterGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.4);
+             const characterMaterial = new THREE.MeshLambertMaterial({ 
+                 color: 0xFF69B4
+             });
+             character = new THREE.Mesh(characterGeometry, characterMaterial);
+             
+             // Use spawn position from level data if available, otherwise default to origin
+             if (levelData.world && levelData.world.spawn) {
+                 characterGridPos = { x: levelData.world.spawn.x, z: levelData.world.spawn.z };
+             } else {
+                 characterGridPos = { x: 0, z: 0 };
+             }
+             
+             const worldPos = gridToWorld(characterGridPos.x, characterGridPos.z);
+             character.position.set(worldPos.x, 0.8, worldPos.z);
+             characterPosition.x = worldPos.x;
+             characterPosition.z = worldPos.z;
+             
+             character.castShadow = true;
+             scene.add(character);
+             
+             const faceGeometry = new THREE.SphereGeometry(0.15);
+             const faceMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDDAA });
+             const face = new THREE.Mesh(faceGeometry, faceMaterial);
+             face.position.set(0, 0.3, 0.25);
+             character.add(face);
+             
+             const eyeGeometry = new THREE.SphereGeometry(0.03);
+             const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+             
+             const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+             leftEye.position.set(-0.05, 0.05, 0.1);
+             face.add(leftEye);
+             
+             const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+             rightEye.position.set(0.05, 0.05, 0.1);
+             face.add(rightEye);
+             
+             // Position camera based on level data if available
+             if (levelData.world && levelData.world.camera_start) {
+                 camera.position.set(
+                     levelData.world.camera_start.x, 
+                     15, 
+                     levelData.world.camera_start.z
+                 );
+                 camera.lookAt(worldPos.x, 0, worldPos.z);
+             }
+             
+             console.log(`👤 Character spawned at grid position (${characterGridPos.x}, ${characterGridPos.z})`);
+         }
         
         // Game input handlers
         function handleGameKeyDown(event) {
@@ -2208,15 +2402,31 @@
             });
         }
         
-        function isWaterTile(x, z) {
-            // Check against loaded water tiles
-            return levelData.water.some(tile => tile.x === x && tile.z === z);
-        }
-        
-        function isTreeTile(x, z) {
-            // Check against loaded tree positions
-            return levelData.trees.some(tile => tile.x === x && tile.z === z);
-        }
+                 function isWaterTile(x, z) {
+             // Check against loaded water tiles from all areas
+             if (!levelData.terrain || !levelData.terrain.water || !levelData.terrain.water.areas) {
+                 return false;
+             }
+             
+             return levelData.terrain.water.areas.some(area => {
+                 return area.tiles.some(tile => {
+                     const [tileX, tileZ] = tile;
+                     return tileX === x && tileZ === z;
+                 });
+             });
+         }
+         
+         function isTreeTile(x, z) {
+             // Check against loaded tree positions
+             if (!levelData.terrain || !levelData.terrain.trees) {
+                 return false;
+             }
+             
+             return levelData.terrain.trees.some(tree => {
+                 const [treeX, treeZ] = tree.pos;
+                 return treeX === x && treeZ === z;
+             });
+         }
         
         function updateCharacterAnimations() {
             if (!isMoving) {
@@ -2408,56 +2618,25 @@
         // Ensure smooth loading
         document.body.style.opacity = '1';
 
-        // Function to load level data from a CFG file
-        async function loadLevelData(levelFileName) {
-            try {
-                const response = await fetch(`scripts/levels/${levelFileName}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const text = await response.text();
-                
-                const data = parseCfg(text);
-                console.log(`✅ Loaded level data from ${levelFileName}:`, data);
-                return data;
-            } catch (error) {
-                console.error(`❌ Failed to load level data from ${levelFileName}:`, error);
-                return {}; // Return empty data on error
-            }
-        }
-
-        // Function to parse the CFG file content
-        function parseCfg(cfgText) {
-            const lines = cfgText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-            const parsedData = {
-                trees: [],
-                rocks: [],
-                water: [],
-                box: null,
-                torch: null
-            };
-            let currentSection = '';
-
-            lines.forEach(line => {
-                if (line.endsWith(':')) {
-                    currentSection = line.slice(0, -1);
-                } else if (currentSection) {
-                    const parts = line.split(',').map(Number);
-                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                        const gridPos = { x: parts[0], z: parts[1] };
-                        if (currentSection === 'box') {
-                            parsedData.box = gridPos;
-                        } else if (currentSection === 'torch') {
-                            parsedData.torch = gridPos;
-                        }
-                         else if (parsedData[currentSection]) {
-                            parsedData[currentSection].push(gridPos);
-                        }
-                    }
-                }
-            });
-            return parsedData;
-        }
+                 // Function to load level data from a JSON file
+         async function loadLevelData(levelFileName) {
+             try {
+                 // Convert .cfg extension to .json for backwards compatibility
+                 const jsonFileName = levelFileName.replace('.cfg', '.json');
+                 const response = await fetch(`scripts/levels/${jsonFileName}`);
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+                 const jsonData = await response.json();
+                 
+                 console.log(`✅ Loaded level data from ${jsonFileName}:`, jsonData.meta);
+                 console.log(`📍 Level: "${jsonData.meta.name}" - ${jsonData.meta.description}`);
+                 return jsonData;
+             } catch (error) {
+                 console.error(`❌ Failed to load level data from ${levelFileName}:`, error);
+                 return {}; // Return empty data on error
+             }
+         }
     </script>
 </body>
 </html>

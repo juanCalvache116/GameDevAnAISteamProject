@@ -1,0 +1,213 @@
+{
+  "meta": {
+    "name": "Shipwreck Beach",
+    "description": "The shores where our protagonist washes up after the shipwreck. Scattered with debris and the remnants of other unfortunate sailors.",
+    "author": "GameDev Team", 
+    "version": "1.0",
+    "created": "2024-01-01",
+    "difficulty": "beginner"
+  },
+  
+  "world": {
+    "spawn": { "x": 0, "z": 0 },
+    "camera_start": { "x": 0, "z": 8 },
+    "bounds": {
+      "min": { "x": -25, "z": -25 },
+      "max": { "x": 25, "z": 25 }
+    }
+  },
+
+  "terrain": {
+    "trees": [
+      { "pos": [-4, -4], "variant": "oak", "size": "medium" },
+      { "pos": [4, -4], "variant": "palm", "size": "large" },
+      { "pos": [-4, 4], "variant": "pine", "size": "medium" },
+      { "pos": [4, 4], "variant": "oak", "size": "small" },
+      
+      { "pos": [-6, 0], "variant": "palm", "size": "large" },
+      { "pos": [6, 0], "variant": "oak", "size": "medium" },
+      { "pos": [0, -6], "variant": "pine", "size": "tall" },
+      { "pos": [0, 6], "variant": "palm", "size": "large" },
+      
+      { "pos": [-10, -8], "variant": "dead_tree", "size": "medium" },
+      { "pos": [8, -12], "variant": "palm", "size": "large" },
+      { "pos": [-12, 10], "variant": "oak", "size": "small" },
+      { "pos": [12, 8], "variant": "pine", "size": "tall" },
+      
+      { "pos": [-15, -15], "variant": "dead_tree", "size": "large" },
+      { "pos": [15, -15], "variant": "palm", "size": "huge" },
+      { "pos": [-15, 15], "variant": "oak", "size": "medium" },
+      { "pos": [15, 15], "variant": "pine", "size": "tall" },
+      
+      { "pos": [-8, -20], "variant": "dead_tree", "size": "medium" },
+      { "pos": [8, 20], "variant": "palm", "size": "large" },
+      { "pos": [-20, 8], "variant": "oak", "size": "small" },
+      { "pos": [20, -8], "variant": "pine", "size": "medium" },
+      
+      { "pos": [-18, 0], "variant": "dead_tree", "size": "large" },
+      { "pos": [18, 0], "variant": "palm", "size": "huge" },
+      { "pos": [0, -18], "variant": "oak", "size": "medium" },
+      { "pos": [0, 18], "variant": "pine", "size": "tall" },
+      
+      { "pos": [-22, -10], "variant": "dead_tree", "size": "small" },
+      { "pos": [22, 10], "variant": "palm", "size": "large" },
+      { "pos": [-10, 22], "variant": "oak", "size": "medium" },
+      { "pos": [10, -22], "variant": "pine", "size": "tall" },
+      
+      { "pos": [-24, -5], "variant": "dead_tree", "size": "medium" },
+      { "pos": [24, 5], "variant": "palm", "size": "large" },
+      { "pos": [-5, -24], "variant": "oak", "size": "small" },
+      { "pos": [5, 24], "variant": "pine", "size": "medium" },
+      
+      { "pos": [-25, 0], "variant": "ancient_tree", "size": "huge" },
+      { "pos": [25, 0], "variant": "ancient_tree", "size": "huge" },
+      { "pos": [0, -25], "variant": "ancient_tree", "size": "huge" },
+      { "pos": [0, 25], "variant": "ancient_tree", "size": "huge" },
+      
+      { "pos": [-23, 17], "variant": "dead_tree", "size": "large" },
+      { "pos": [23, -17], "variant": "palm", "size": "medium" },
+      { "pos": [-17, 23], "variant": "oak", "size": "small" },
+      { "pos": [17, -23], "variant": "pine", "size": "tall" }
+    ],
+
+    "rocks": [
+      { "pos": [-3, -3], "type": "boulder", "size": "small", "material": "granite" },
+      { "pos": [3, 3], "type": "boulder", "size": "medium", "material": "limestone" },
+      { "pos": [-3, 3], "type": "rock_pile", "size": "small", "material": "sandstone" },
+      { "pos": [5, -2], "type": "boulder", "size": "large", "material": "granite" },
+      
+      { "pos": [-7, 2], "type": "rock_pile", "size": "medium", "material": "volcanic" },
+      { "pos": [9, -5], "type": "boulder", "size": "small", "material": "limestone" },
+      { "pos": [-11, -7], "type": "boulder", "size": "large", "material": "granite" },
+      { "pos": [13, 6], "type": "rock_pile", "size": "medium", "material": "sandstone" },
+      
+      { "pos": [-16, 12], "type": "boulder", "size": "huge", "material": "granite" },
+      { "pos": [14, -16], "type": "boulder", "size": "large", "material": "volcanic" },
+      
+      { "pos": [-21, -3], "type": "rock_formation", "size": "large", "material": "limestone" },
+      { "pos": [21, 3], "type": "rock_formation", "size": "large", "material": "granite" },
+      { "pos": [-3, -21], "type": "boulder", "size": "medium", "material": "sandstone" },
+      { "pos": [3, 21], "type": "boulder", "size": "medium", "material": "volcanic" },
+      
+      { "pos": [-19, 8], "type": "rock_pile", "size": "large", "material": "granite" },
+      { "pos": [19, -8], "type": "rock_pile", "size": "large", "material": "limestone" },
+      { "pos": [-8, 19], "type": "boulder", "size": "medium", "material": "sandstone" },
+      { "pos": [8, -19], "type": "boulder", "size": "medium", "material": "volcanic" },
+      
+      { "pos": [-24, 12], "type": "rock_formation", "size": "huge", "material": "ancient_stone" },
+      { "pos": [24, -12], "type": "rock_formation", "size": "huge", "material": "ancient_stone" }
+    ],
+
+    "water": {
+      "areas": [
+        {
+          "name": "mysterious_pond",
+          "type": "pond",
+          "description": "A small, eerily still pond reflecting the moonlight",
+          "properties": {
+            "depth": "shallow",
+            "clarity": "murky",
+            "temperature": "cold"
+          },
+          "tiles": [
+            [-8, -8], [-7, -8], [-6, -8],
+            [-8, -7], [-7, -7], [-6, -7],
+            [-8, -6], [-7, -6], [-6, -6]
+          ]
+        }
+      ]
+    }
+  },
+
+  "items": {
+    "containers": [
+      {
+        "type": "essence_box",
+        "pos": [2, 2],
+        "properties": {
+          "pushable": true,
+          "essence": null,
+          "material": "cursed_wood",
+          "durability": 100,
+          "locked": false
+        },
+        "description": "A mysterious wooden box that seems to pulse with otherworldly energy"
+      }
+    ],
+
+    "light_sources": [
+      {
+        "type": "torch",
+        "pos": [-5, 3],
+        "properties": {
+          "essence": "fire",
+          "lit": true,
+          "fuel": 100,
+          "brightness": 0.8,
+          "flicker": true,
+          "color": "#ff4500"
+        },
+        "description": "An ancient torch that burns with an eternal flame"
+      }
+    ]
+  },
+
+  "zones": [
+    {
+      "name": "starting_area",
+      "type": "safe_zone",
+      "bounds": {
+        "center": [0, 0],
+        "radius": 5
+      },
+      "properties": {
+        "no_enemies": true,
+        "tutorial_hints": true
+      }
+    },
+    {
+      "name": "pond_area",
+      "type": "water_zone", 
+      "bounds": {
+        "min": [-9, -9],
+        "max": [-5, -5]
+      },
+      "properties": {
+        "ambient_sound": "water_lapping",
+        "fog_density": 0.3
+      }
+    }
+  ],
+
+  "events": [
+    {
+      "name": "first_essence_tutorial",
+      "trigger": "player_near_torch",
+      "condition": {
+        "player_essence": null,
+        "distance_to": [-5, 3],
+        "max_distance": 3
+      },
+      "action": {
+        "type": "show_hint",
+        "message": "Press E to absorb the torch's fire essence"
+      }
+    }
+  ],
+
+  "audio": {
+    "ambient": [
+      {
+        "name": "ocean_waves",
+        "file": "beach_ambience.mp3",
+        "volume": 0.3,
+        "loop": true,
+        "fade_distance": 15
+      }
+    ],
+    "music": {
+      "exploration": "mysterious_island.mp3",
+      "volume": 0.2
+    }
+  }
+}
