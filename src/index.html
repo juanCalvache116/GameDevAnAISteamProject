@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; object-src 'none';">
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
+                   img-src 'self' data:; 
+                   style-src 'self' 'unsafe-inline'; 
+                   media-src 'self'; 
+                   connect-src 'self'; 
+                   frame-ancestors 'none'; 
+                   object-src 'none';">
     <title>Drowned Heart - A Cursed Tale of Love and Betrayal</title>
     <style>
         * {
@@ -751,15 +759,115 @@
         const ENABLE_SHADER = true; // Set to false to disable shader for better performance
         const SHADER_QUALITY = 'medium'; // 'low', 'medium', 'high'
         
-        // WebGL Shader Setup
-        let canvas, gl, program, startTime;
-        
-        function initShader() {
-            if (!ENABLE_SHADER) {
-                console.log('🎨 Shader disabled for performance - using solid background');
-                createFallbackBackground();
-                return;
-            }
+                 // WebGL Shader Setup
+         let canvas, gl, program, startTime;
+         
+         // Comprehensive WebGL diagnostic function
+         function diagnoseWebGLIssues() {
+             console.log('🔍 === WebGL Diagnostic Start ===');
+             
+             // Test basic canvas creation
+             const testCanvas = document.createElement('canvas');
+             console.log('✅ Canvas element created successfully');
+             
+             // Test different context types
+             const contextTypes = ['webgl2', 'webgl', 'experimental-webgl'];
+             const contextAttributes = {
+                 antialias: false,
+                 alpha: false,
+                 depth: true,
+                 stencil: false,
+                 preserveDrawingBuffer: false,
+                 desynchronized: true,
+                 powerPreference: 'high-performance',
+                 failIfMajorPerformanceCaveat: false
+             };
+             
+             let workingContext = null;
+             for (const contextType of contextTypes) {
+                 try {
+                     const ctx = testCanvas.getContext(contextType, contextAttributes);
+                     if (ctx) {
+                         console.log(`✅ ${contextType.toUpperCase()} context created successfully`);
+                         workingContext = { type: contextType, context: ctx };
+                         break;
+                     } else {
+                         console.log(`❌ ${contextType.toUpperCase()} context creation returned null`);
+                     }
+                 } catch (error) {
+                     console.log(`❌ ${contextType.toUpperCase()} context creation threw error:`, error);
+                 }
+             }
+             
+             if (workingContext) {
+                 const gl = workingContext.context;
+                 
+                 // Get detailed GL info
+                 console.log(`🎮 Working WebGL context: ${workingContext.type.toUpperCase()}`);
+                 console.log('📊 WebGL Version:', gl.getParameter(gl.VERSION));
+                 console.log('📝 GLSL Version:', gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+                 
+                 // Check for debug extension
+                 const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                 if (debugInfo) {
+                     const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                     const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                     
+                     console.log('🖥️ GPU Renderer:', renderer);
+                     console.log('🏢 GPU Vendor:', vendor);
+                     
+                     // Detect software rendering
+                     const isSoftware = renderer.includes('SwiftShader') || 
+                                       renderer.includes('llvmpipe') || 
+                                       renderer.includes('ANGLE (Software)') ||
+                                       renderer.includes('Mesa') ||
+                                       renderer.toLowerCase().includes('software');
+                     
+                     if (isSoftware) {
+                         console.error('🚨 SOFTWARE RENDERING DETECTED!');
+                         console.error('   This will cause poor performance.');
+                         console.error('   Solutions:');
+                         console.error('   • Update GPU drivers');
+                         console.error('   • Enable hardware acceleration');
+                         console.error('   • Check if running in VM/RDP');
+                     } else {
+                         console.log('✅ Hardware acceleration appears to be working');
+                     }
+                 } else {
+                     console.warn('⚠️ WEBGL_debug_renderer_info extension not available');
+                 }
+                 
+                 // Test basic operations
+                 try {
+                     gl.clear(gl.COLOR_BUFFER_BIT);
+                     console.log('✅ Basic WebGL operations working');
+                 } catch (error) {
+                     console.error('❌ Basic WebGL operations failed:', error);
+                 }
+                 
+             } else {
+                 console.error('🚨 NO WEBGL CONTEXT AVAILABLE!');
+                 console.error('   This means WebGL is completely disabled.');
+                 console.error('   Check:');
+                 console.error('   • Chrome flags: chrome://flags/#disable-webgl');
+                 console.error('   • GPU blacklist status');
+                 console.error('   • Hardware acceleration enabled');
+                 console.error('   • Not running with --disable-gpu flag');
+             }
+             
+             console.log('🔍 === WebGL Diagnostic End ===');
+             return workingContext;
+         }
+         
+         function initShader() {
+             if (!ENABLE_SHADER) {
+                 console.log('🎨 Shader disabled for performance - using solid background');
+                 createFallbackBackground();
+                 return;
+             }
+             
+             // Run comprehensive diagnostics first
+             const diagnosticResult = diagnoseWebGLIssues();
             
                          canvas = document.getElementById('shaderCanvas');
              
@@ -1109,6 +1217,41 @@
         // GAME TRANSITION FUNCTIONS
         // ==========================================
         
+        // Reset game state for clean restart
+        function resetGameState() {
+            console.log('🔄 Resetting game state...');
+            
+            // Reset input state
+            keys = {};
+            keyPressed = {};
+            isMoving = false;
+            
+            // Reset character position and movement
+            characterGridPos = { x: 0, z: 0 };
+            characterPosition = { x: 0, z: 0 };
+            
+            // Reset essence system
+            playerEssence = null;
+            boxEssence = null;
+            
+            // Reset box position
+            boxGridPos = { x: 2, z: 2 };
+            
+            // Reset performance monitoring
+            perfLast = performance.now();
+            perfAcc = 0;
+            perfFrames = 0;
+            
+            // Remove FPS display if it exists
+            const existingFpsDisplay = document.querySelector('.fps-counter');
+            if (existingFpsDisplay) {
+                existingFpsDisplay.remove();
+                fpsDisplay = null;
+            }
+            
+            console.log('✅ Game state reset complete');
+        }
+        
         function startGame() {
             console.log('Starting game...');
             gameState = 'game';
@@ -1123,7 +1266,38 @@
             // Show game container
             document.getElementById('gameContainer').classList.add('active');
             
-            // Initialize game if not already done
+            // Always reset game state when starting game (fixes control issues)
+            if (gameInitialized) {
+                resetGameState();
+                // Re-initialize game objects to their starting positions
+                if (character) {
+                    const worldPos = gridToWorld(0, 0);
+                    character.position.set(worldPos.x, 0.8, worldPos.z);
+                    characterPosition.x = worldPos.x;
+                    characterPosition.z = worldPos.z;
+                    
+                    // Reset camera position
+                    camera.position.set(worldPos.x, 15, worldPos.z + 8);
+                    camera.lookAt(worldPos.x, 0, worldPos.z);
+                }
+                
+                // Reset pushable box position
+                if (pushableBox) {
+                    const boxWorldPos = gridToWorld(boxGridPos.x, boxGridPos.z);
+                    pushableBox.position.set(boxWorldPos.x, 0.9, boxWorldPos.z);
+                    updateBoxAppearance(); // Reset box appearance
+                }
+                
+                // Update UI displays
+                updatePositionDisplay();
+                updateEssenceDisplay();
+                updateMinimap();
+                
+                // Restart animation loop
+                animate();
+            }
+            
+            // Initialize game if not already done (first time only)
             if (!gameInitialized) {
                 initializeGame();
                 gameInitialized = true;
@@ -1133,6 +1307,18 @@
         function backToMenu() {
             console.log('Back to menu...');
             gameState = 'menu';
+            
+            // Clean up any lingering input states
+            keys = {};
+            keyPressed = {};
+            isMoving = false;
+            
+            // Remove FPS display when leaving game
+            const existingFpsDisplay = document.querySelector('.fps-counter');
+            if (existingFpsDisplay) {
+                existingFpsDisplay.remove();
+                fpsDisplay = null;
+            }
             
             // Hide game container
             document.getElementById('gameContainer').classList.remove('active');
@@ -1146,6 +1332,8 @@
             menuMusic.play().catch(error => {
                 console.log('Failed to restart menu music:', error);
             });
+            
+            console.log('✅ Returned to main menu');
         }
         
         // ==========================================

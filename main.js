@@ -11,14 +11,19 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 
-// Windows-specific ANGLE backend optimization
+// GPU crash prevention strategies (try these in order if crashes persist)
 if (process.platform === 'win32') {
-    app.commandLine.appendSwitch('use-angle', 'd3d11'); // D3D11 backend for better performance
-    app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion'); // Avoid occlusion throttling
+    // Strategy 2: OpenGL backend (current) - D3D11 was causing crashes
+    app.commandLine.appendSwitch('use-angle', 'gl'); // Try OpenGL backend instead
+    app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+    app.commandLine.appendSwitch('disable-gpu-sandbox'); // Often fixes driver crashes
+    
+    // Strategy 1: D3D11 with crash prevention (CAUSED CRASHES)
+    // app.commandLine.appendSwitch('use-angle', 'd3d11');
+    
+    // Strategy 3: If still crashing, uncomment next line and restart:
+    // app.commandLine.appendSwitch('use-angle', 'd3d9'); // Try older D3D9 backend
 }
-
-// Disable software rendering fallback for consistent performance
-app.commandLine.appendSwitch('disable-software-rasterizer');
 
 // Keep a global reference of the window object
 let mainWindow;

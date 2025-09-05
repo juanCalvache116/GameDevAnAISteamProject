@@ -119,3 +119,13 @@ logs
 # Temporary files
 tmp/
 temp/
+
+# Test and debug files
+test-*.js
+test-*.html
+test-*.md
+*-test.*
+*-debug.*
+diagnostic-*.html
+webgl-*.html
+gpu-*.md
