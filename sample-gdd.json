@@ -1,0 +1,347 @@
+{
+  "gameDesignDocument": {
+    "title": "Neon Blaster",
+    "version": "1.0",
+    "lastUpdated": "2024-01-15",
+    "teamSize": "1-5 developers",
+    "estimatedDevelopmentTime": "6-8 months",
+    
+    "gameOverview": {
+      "concept": "A fast-paced top-down shooter set in a neon-lit cyberpunk city where players fight through waves of enemies using various weapons and abilities.",
+      "genre": "Top-Down Shooter / Action",
+      "platform": ["PC", "Mac", "Linux"],
+      "targetAudience": "Ages 13+ who enjoy action games and retro aesthetics",
+      "coreLoop": "Survive waves of enemies → Collect power-ups → Upgrade weapons → Progress through levels → Face boss battles",
+      "uniqueSellingPoints": [
+        "Dynamic neon visual effects that react to gameplay",
+        "Weapon crafting system using collected materials",
+        "Procedurally generated enemy spawn patterns",
+        "Local co-op support for up to 4 players"
+      ]
+    },
+
+    "gameplayMechanics": {
+      "cameraSystem": {
+        "type": "Top-down fixed camera",
+        "fieldOfView": "Full screen arena visible",
+        "followPlayer": true,
+        "smoothing": "Medium camera smoothing for fluid movement"
+      },
+      
+      "playerMovement": {
+        "type": "8-directional movement",
+        "controls": {
+          "movement": "WASD keys or Arrow keys",
+          "aim": "Mouse cursor direction",
+          "shoot": "Left mouse button or Spacebar",
+          "reload": "R key",
+          "useAbility": "Right mouse button or Shift"
+        },
+        "speed": {
+          "baseSpeed": 200,
+          "sprintSpeed": 350,
+          "slowedSpeed": 100
+        }
+      },
+
+      "combatSystem": {
+        "shootingMechanic": "Point and click/hold to fire",
+        "aimingSystem": "Mouse cursor determines bullet direction",
+        "hitDetection": "Pixel-perfect collision detection",
+        "bulletTypes": [
+          "Standard bullets",
+          "Explosive rounds",
+          "Piercing shots",
+          "Homing missiles"
+        ]
+      },
+
+      "healthSystem": {
+        "playerHealth": {
+          "maxHealth": 100,
+          "healthRegeneration": false,
+          "damageTypes": ["projectile", "explosion", "contact"],
+          "invincibilityFrames": 1.5
+        },
+        "enemyHealth": "Variable based on enemy type (10-500 HP)"
+      },
+
+      "scoreSystem": {
+        "basePoints": {
+          "enemyKill": 10,
+          "bossKill": 500,
+          "waveComplete": 100,
+          "timeBonus": "1 point per second remaining"
+        },
+        "multipliers": {
+          "consecutiveKills": "Up to 5x multiplier",
+          "noHitBonus": "2x multiplier for taking no damage"
+        }
+      }
+    },
+
+    "playerCharacter": {
+      "appearance": {
+        "style": "Cyberpunk soldier with customizable neon accents",
+        "size": "32x32 pixel sprite",
+        "animations": ["idle", "walk", "shoot", "reload", "death", "ability"]
+      },
+      
+      "progression": {
+        "experienceSystem": {
+          "xpSources": ["enemy kills", "wave completion", "exploration"],
+          "levelBenefits": ["increased health", "faster reload", "new abilities"]
+        },
+        
+        "upgradeSystem": {
+          "weaponUpgrades": [
+            "Damage increase",
+            "Fire rate boost",
+            "Larger magazine",
+            "Special ammunition"
+          ],
+          "playerUpgrades": [
+            "Movement speed",
+            "Health capacity",
+            "Shield regeneration",
+            "Ability cooldown reduction"
+          ]
+        }
+      },
+
+      "abilities": [
+        {
+          "name": "Shield Boost",
+          "description": "Temporary invincibility and health regeneration",
+          "cooldown": 30,
+          "duration": 5
+        },
+        {
+          "name": "Bullet Time",
+          "description": "Slows down time for precise aiming",
+          "cooldown": 45,
+          "duration": 8
+        },
+        {
+          "name": "Area Blast",
+          "description": "Explosive blast that damages all nearby enemies",
+          "cooldown": 25,
+          "range": 150
+        }
+      ]
+    },
+
+    "enemies": {
+      "basicEnemies": [
+        {
+          "name": "Scout Drone",
+          "health": 20,
+          "speed": 150,
+          "behavior": "Moves directly toward player",
+          "attackPattern": "Single projectile every 2 seconds",
+          "points": 10
+        },
+        {
+          "name": "Heavy Gunner",
+          "health": 80,
+          "speed": 50,
+          "behavior": "Moves slowly, stops to shoot",
+          "attackPattern": "3-shot burst every 3 seconds",
+          "points": 25
+        },
+        {
+          "name": "Plasma Weaver",
+          "health": 35,
+          "speed": 200,
+          "behavior": "Circles around player",
+          "attackPattern": "Continuous plasma beam",
+          "points": 20
+        }
+      ],
+
+      "bossEnemies": [
+        {
+          "name": "Cyber Sentinel",
+          "health": 500,
+          "phases": 3,
+          "abilities": [
+            "Homing missile barrage",
+            "Laser sweep attack",
+            "Shield regeneration",
+            "Minion summoning"
+          ],
+          "weakPoint": "Central core exposed during attack animations"
+        }
+      ],
+
+      "spawningSystem": {
+        "spawnPoints": "8 locations around arena perimeter",
+        "spawnRate": "Increases with wave number",
+        "maxEnemiesOnScreen": 25,
+        "waveProgression": "Enemies get stronger and more numerous each wave"
+      }
+    },
+
+    "weapons": {
+      "primaryWeapons": [
+        {
+          "name": "Plasma Rifle",
+          "damage": 15,
+          "fireRate": 10
+        },
+        {
+          "name": "Shotgun",
+          "damage": 8,
+          "fireRate": 2
+        },
+        {
+          "name": "Sniper Cannon",
+          "damage": 75,
+          "fireRate": 1
+        }
+      ],
+
+      "secondaryWeapons": [
+        {
+          "name": "Grenade Launcher",
+          "damage": 50,
+          "fireRate": 1.5,
+          "magazineSize": 6,
+          "explosionRadius": 100,
+          "special": "Area damage with physics knockback"
+        },
+        {
+          "name": "Homing Missiles",
+          "damage": 40,
+          "fireRate": 0.5,
+          "magazineSize": 4,
+          "tracking": "Locks onto nearest enemy",
+          "special": "Automatically targets enemies"
+        }
+      ],
+
+      "weaponUpgrades": {
+        "damageBoost": "10% damage increase per level",
+        "fireRateIncrease": "15% faster firing per level",
+        "magazineExpansion": "25% larger magazine per level",
+        "specialAmmo": "Unlocks elemental damage types"
+      }
+    },
+
+    "powerUps": {
+      "temporary": [
+        {
+          "name": "Rapid Fire",
+          "effect": "Double fire rate",
+          "duration": 15,
+          "rarity": "Common"
+        },
+        {
+          "name": "Shield",
+          "effect": "Absorbs next 3 hits",
+          "duration": 30,
+          "rarity": "Uncommon"
+        },
+        {
+          "name": "Multi-Shot",
+          "effect": "Weapons fire 3 projectiles",
+          "duration": 20,
+          "rarity": "Rare"
+        }
+      ],
+
+      "permanent": [
+        {
+          "name": "Health Pack",
+          "effect": "Restores 25 HP",
+          "rarity": "Common"
+        },
+        {
+          "name": "Weapon Parts",
+          "effect": "Currency for weapon upgrades",
+          "rarity": "Common"
+        },
+        {
+          "name": "Experience Crystal",
+          "effect": "Grants bonus XP",
+          "rarity": "Uncommon"
+        }
+      ]
+    },
+
+    "levelDesign": {
+      "arenaSize": "1200x900 pixels",
+      "environment": {
+        "theme": "Neon-lit cyberpunk city streets",
+        "obstacles": [
+          "Destructible barriers",
+          "Energy pylons that provide cover",
+          "Moving platforms",
+          "Hazardous energy fields"
+        ],
+        "interactables": [
+          "Weapon upgrade stations",
+          "Health dispensers",
+          "Teleportation pads"
+        ]
+      },
+
+      "waveStructure": {
+        "totalWaves": 50,
+        "bossWaves": "Every 10th wave",
+        "difficultyProgression": "Linear increase in enemy count and strength",
+        "specialWaves": {
+          "wave15": "Drone swarm - 50 weak enemies",
+          "wave25": "Heavy assault - All enemies are armored",
+          "wave35": "Speed demons - All enemies move 2x faster",
+          "wave50": "Final boss battle"
+        }
+      }
+    },
+
+    "visualDesign": {
+      "artStyle": {
+        "overall": "Pixel art with neon glow effects",
+        "colorPalette": "Dark backgrounds with bright neon accents",
+        "resolution": "1920x1080 native, scalable to other resolutions",
+        "frameRate": "60 FPS target"
+      },
+
+      "effects": {
+        "particleSystems": [
+          "Muzzle flashes",
+          "Explosion debris",
+          "Enemy death effects",
+          "Power-up sparkles"
+        ],
+        "lighting": "Dynamic neon lighting that pulses with music",
+        "screenShake": "Subtle screen shake for impacts and explosions"
+      },
+
+      "userInterface": {
+        "hud": [
+          "Health bar (top-left)",
+          "Weapon info and ammo count (bottom-right)",
+          "Score and wave counter (top-center)",
+          "Mini-map (top-right corner)"
+        ],
+        "menus": "Clean cyberpunk-themed interfaces with neon accents"
+      }
+    },
+      
+      "performance": {
+        "targetFrameRate": 60,
+        "resolution": "1920x1080 native",
+        "maxParticles": 1000,
+        "maxEnemiesOnScreen": 25
+      },
+
+      "saveSystem": {
+        "progressSaving": "Automatic save after each wave",
+        "settingsPersistence": "Graphics and audio settings saved",
+        "scoreTracking": "Local high score leaderboard"
+      }
+    }
+    }
+  }
+}
